@@ -9,7 +9,7 @@ from contextlib import contextmanager
 import logging
 from app.config import settings
 logger = logging.getLogger(__name__)
-
+import json
 
 class DatabaseService:
     def __init__(self):
@@ -385,69 +385,109 @@ class DatabaseService:
             raise
 
     def bulk_upsert_question_evaluations(self, rows: list[dict]):
+     with self.get_connection() as conn:
+        cursor = conn.cursor()
+
+        # Match EXACT SQL column order (excluding identity & default columns)
+        col_order = [
+            "CityID",
+            "PillarID",
+            "QuestionID",
+            "Year",
+            "AIScore",
+            "AIProgress",
+            "EvaluatorScore",
+            "Discrepancy",
+            "ConfidenceLevel",
+            "EvidenceSummary",
+            "StructuralEvidence",
+            "OperationalEvidence",
+            "OutcomeEvidence",
+            "PerceptionEvidence",
+            "TemporalScope",
+            "DistortionScreening",
+            "RelationalDependencies",
+            "StressPoliticalShock",
+            "StressEconomicShock",
+            "StressNarrativeShock",
+            "StressOverallResilienceShock",
+            "InequalityAdjustment",
+            "OpacityRisk",
+            "RedFlag",
+            "SourceName",
+            "SourceType",
+            "SourceURL",
+            "SourceDataYear",
+            "SourceHierarchyLevel",
+            "SourceDataExtract",
+            "SourcesConsulted"
+        ]
+
+        # Ensure missing keys don't break execution
+        df = pd.DataFrame(rows)
+
+        for col in col_order:
+            if col not in df.columns:
+                df[col] = None
+
+        # Force exact order
+        df = df[col_order]
+
+        # Convert to tuple records
+        records = list(df.itertuples(index=False, name=None))
+
+        cursor.execute(
+            "{CALL usp_AiBulkUpsertPillarQuestionEvaluations (?)}",
+            (records,)
+        )
+
+        conn.commit()
+        
+    def bulk_upsert_pillar_evaluations(self, rows: list[dict], subRows: list[dict]):
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
-            # define correct SQL column order for TVP
             col_order = [
                 "CityID",
                 "PillarID",
-                "QuestionID",
                 "Year",
                 "AIScore",
                 "AIProgress",
-                "EvaluatorProgress",
-                "Discrepancy",
-                "ConfidenceLevel",
-                "DataSourcesUsed",
-                "EvidenceSummary",
-                "RedFlags",
-                "GeographicEquityNote",
-                "SourceType",
-                "SourceName",
-                "SourceURL",
-                "SourceDataYear",
-                "SourceDataExtract",
-                "SourceTrustLevel"
-            ]
-
-            # Force this order
-            df = pd.DataFrame(rows)[col_order]
-
-            # Convert rows → tuples in correct order
-            records = list(df.itertuples(index=False, name=None))
-
-            cursor.execute(
-                "{CALL usp_AiBulkUpsertPillarQuestionEvaluations (?)}",
-                (records,)
-            )
-
-            conn.commit()
-        
-    def bulk_upsert_pillar_evaluations(self, rows: list[dict], subRows: list[dict]):   
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-
-            # ✅ Ensure correct column order for TVP_AIPillarScore
-            score_df = pd.DataFrame(rows)[[
-                "CityID",
-                "PillarID",
-                "Year",
-                "AIScore",
-                "AIProgress",
-                "EvaluatorProgress",
+                "EvaluatorScore",
                 "Discrepancy",
                 "ConfidenceLevel",
                 "EvidenceSummary",
-                "RedFlags",
+                "StructuralEvidence",
+                "OperationalEvidence",
+                "OutcomeEvidence",
+                "PerceptionEvidence",
+                "TemporalScope",
+                "DistortionScreening",
+                "RelationalIntegrity",
+                "StressPoliticalShock",
+                "StressEconomicShock",
+                "StressNarrativeShock",
+                "StressOverallResilience",
+                "StressScoreAdjustment",
+                "InequalityAdjustment",
+                "OpacityRisk",
+                "NonCompensationNote",
                 "GeographicEquityNote",
                 "InstitutionalAssessment",
-                "DataGapAnalysis"
-            ]]
+                "DataGapAnalysis",
+                "RedFlag"
+            ]
 
+            score_df = pd.DataFrame(rows)
+
+            for col in col_order:
+                if col not in score_df.columns:
+                    score_df[col] = None
+
+            score_df = score_df[col_order]
             score_records = list(score_df.itertuples(index=False, name=None))
 
-            # ✅ Ensure correct column order for TVP_DataSourceCitation
+            # Source TVP (unchanged unless you changed its table)
             source_df = pd.DataFrame(subRows)[[
                 "CityID",
                 "DataYear",
@@ -458,52 +498,144 @@ class DatabaseService:
                 "DataExtract",
                 "TrustLevel"
             ]]
-
             source_records = list(source_df.itertuples(index=False, name=None))
 
-            # ✅ CORRECT stored procedure call (TWO parameters)
             cursor.execute(
                 "{CALL usp_AiBulkUpsertCityPillarEvaluations (?, ?)}",
-                (score_records, source_records)
-            )
+                (
+                    json.dumps(rows),
+                    json.dumps(subRows)
+                )
+)
 
             conn.commit()
 
-    def bulk_upsert_city_evaluations(self, rows: list[dict]):   
-        
+    # def bulk_upsert_city_evaluations(self, rows: list[dict]):
+
+    #     with self.get_connection() as conn:
+    #         cursor = conn.cursor()
+
+    #         col_order = [
+    #             "CityID",
+    #             "Year",
+    #             "AIScore",
+    #             "AIProgress",
+    #             "EvaluatorScore",
+    #             "Discrepancy",
+    #             "ConfidenceLevel",
+    #             "EvidenceSummary",
+    #             "StructuralEvidence",
+    #             "OperationalEvidence",
+    #             "OutcomeEvidence",
+    #             "PerceptionEvidence",
+    #             "TemporalScope",
+    #             "DistortionScreening",
+    #             "PoliticalShock",
+    #             "EconomicShock",
+    #             "NarrativeShock",
+    #             "OverallStressResilience",
+    #             "StressScoreAdjustment",
+    #             "InequalityAdjustment",
+    #             "OpacityRisk",
+    #             "NonCompensationNote",
+    #             "CrossPillarPatterns",
+    #             "RelationalIntegrity",
+    #             "InstitutionalCapacity",
+    #             "EquityAssessment",
+    #             "ConflictRiskOutlook",
+    #             "StrategicRecommendation",
+    #             "DataTransparencyNote",
+    #             "PrimarySource",
+    #             "VerifiedBy"
+    #         ]
+
+    #         df = pd.DataFrame(rows)
+
+    #         # ensure missing columns are added
+    #         for col in col_order:
+    #             if col not in df.columns:
+    #                 df[col] = None
+
+    #         df = df[col_order]
+
+    #         records = list(df.itertuples(index=False, name=None))
+
+    #         cursor.execute(
+    #             "{CALL usp_AiBulkUpsertCityEvaluations (?)}",
+    #             (records,)
+    #         )
+
+    #         conn.commit()
+    def bulk_upsert_city_evaluations(self, rows: list[dict]):
+        """
+        Bulk upsert city evaluations into SQL Server using TVP.
+        Assumes `usp_AiBulkUpsertCityEvaluations` accepts TVP_CityEvaluation.
+        """
+        import pyodbc
+
+        if not rows:
+            return
+
+        # Define the column order matching your TVP
+        col_order = [
+            "CityID",
+            "Year",
+            "AIScore",
+            "AIProgress",
+            "EvaluatorScore",
+            "Discrepancy",
+            "ConfidenceLevel",
+            "EvidenceSummary",
+            "StructuralEvidence",
+            "OperationalEvidence",
+            "OutcomeEvidence",
+            "PerceptionEvidence",
+            "TemporalScope",
+            "DistortionScreening",
+            "PoliticalShock",
+            "EconomicShock",
+            "NarrativeShock",
+            "OverallStressResilience",
+            "StressScoreAdjustment",
+            "InequalityAdjustment",
+            "OpacityRisk",
+            "NonCompensationNote",
+            "CrossPillarPatterns",
+            "RelationalIntegrity",
+            "InstitutionalCapacity",
+            "EquityAssessment",
+            "ConflictRiskOutlook",
+            "StrategicRecommendation",
+            "DataTransparencyNote",
+            "PrimarySource"
+        ]
+
+        # Ensure all rows have all keys
+        for row in rows:
+            for col in col_order:
+                if col not in row:
+                    row[col] = None
+
+        # Convert list of dicts to list of tuples for pyodbc
+        tvp_records = [
+            tuple(row[col] for col in col_order)
+            for row in rows
+        ]
+
+        # Connect and execute SP
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
-            # define correct SQL column order for TVP
-            col_order = [
-                "CityID",
-                "Year",
-                "AIScore",
-                "AIProgress",
-                "EvaluatorProgress",
-                "Discrepancy",
-                "ConfidenceLevel",
-                "EvidenceSummary",
-                "CrossPillarPatterns",
-                "InstitutionalCapacity",
-                "EquityAssessment",
-                "SustainabilityOutlook",
-                "StrategicRecommendations",
-                "DataTransparencyNote"
-            ]
+            # Enable fast executemany for performance
+            cursor.fast_executemany = True
 
-            # Force this order
-            df = pd.DataFrame(rows)[col_order]
-
-            # Convert rows → tuples in correct order
-            records = list(df.itertuples(index=False, name=None))
-
+            # Call the SP with TVP
+            # pyodbc requires the TVP parameter to be passed as a list of tuples
             cursor.execute(
-                "{CALL usp_AiBulkUpsertCityEvaluations (?)}",
-                (records,)
+                "EXEC usp_AiBulkUpsertCityEvaluations @CityEvaluations = ?",
+                (tvp_records,)
             )
 
             conn.commit()
-
 # Singleton instance
 db_service = DatabaseService()
