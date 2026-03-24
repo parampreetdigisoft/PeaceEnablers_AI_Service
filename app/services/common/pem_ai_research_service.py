@@ -12,6 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from app.config import settings
 from app.services.common.llm_factory import llm_factory
+from app.services.common.pillar_prompts import PeaceEnablerPillarPrompts
 logger = logging.getLogger(__name__)
 
 class PEMResearchService:
@@ -64,6 +65,8 @@ class PEMResearchService:
             if year is None:
                 year = datetime.now().year
                             
+            pillar_context = PeaceEnablerPillarPrompts.get_pillar_context(pillarID)
+                            
             prompt = ChatPromptTemplate.from_messages([
                 ("system", self._get_pem_question_system_prompt()),
                 ("user", """
@@ -76,7 +79,7 @@ class PEMResearchService:
                 Conduct research strictly under the Peace Enablers Matrix governance protocol.
                 Return ONLY valid JSON.
                 """)
-                        ])
+            ])
 
             for attempt in range(self.max_retries):
                 try:
@@ -88,6 +91,7 @@ class PEMResearchService:
                         "pillar_name": pillar_name,
                         "question_text": question_text,
                         "evaluator_score":evaluator_score,
+                        "pillar_context": pillar_context,
                         "year": year
                     })
 
@@ -162,6 +166,9 @@ class PEMResearchService:
 
             if year is None:
                 year = datetime.now().year
+
+            pillar_context = PeaceEnablerPillarPrompts.get_pillar_context(pillarId)
+
                 
             prompt = ChatPromptTemplate.from_messages([
                 ("system", self._get_pem_pillar_system_prompt()),
@@ -190,7 +197,8 @@ class PEMResearchService:
                         "question_text": question_text,
                         "year": year,
                         "evaluator_score": evaluator_score,
-                        "existing_ai_score": existing_ai_score
+                        "existing_ai_score": existing_ai_score,
+                        "pillar_context":pillar_context
                     })                    
                     cleaned = self._clean_json_response(result)
                     analysis = json.loads(cleaned)
@@ -251,6 +259,8 @@ class PEMResearchService:
 
             if year is None:
                 year = datetime.now().year
+
+            pillarNames = PeaceEnablerPillarPrompts.get_all_pillar_names()
 
             prompt = ChatPromptTemplate.from_messages([
                 ("system", self._get_pem_city_system_prompt()),
@@ -579,633 +589,309 @@ class PEMResearchService:
         
         return ''.join(result)
     
+    
+    
     # ==================== PROMPT TEMPLATES ====================
    
-
-
-    def _get_pem_question_system_prompt(self) -> str:
-        return """
-    You are the analytical engine of the Peace Enablers Matrix (PEM).
-
-    MISSION:
-    Evaluate systemic peace capacity for a specific question within a defined pillar.
-    You are NOT measuring incident counts or tranquility.
-    You are assessing structural alignment, institutional coherence, and stress resilience.
-
-    --------------------------------------------------
-    I. TEMPORAL JURISDICTION RULE
-    --------------------------------------------------
-    - Primary evaluation window: 1950 to Present.
-    - Pre-1950 history may only be used if it directly shapes post-1950 institutions or narratives.
-    - No scoring may rely exclusively on pre-1950 events.
-    - All evidence must specify timeframe.
-
-    --------------------------------------------------
-    II. EVIDENCE HIERARCHY (MANDATORY)
-    --------------------------------------------------
-    Use minimum TWO independent sources.
-
-    Priority order:
-    Tier 7 - Laws, official gazettes, budget documents, court rulings
-    Tier 6 - Auditor reports, ombudsman findings, anti-corruption bodies
-    Tier 5 - Multilateral agencies, development banks, international monitoring bodies
-    Tier 4 - Peer-reviewed academic research
-    Tier 3 - Verified civil society datasets
-    Tier 2 - Technical or geospatial or private sector data
-    Tier 1 - Media (context only, NOT primary evidence)
-
-    Rules:
-    - Structural and operational evidence outweigh perception.
-    - Media cannot be primary proof.
-    - City-specific evidence preferred over national averages.
-
-    --------------------------------------------------
-    III. FOUR-LAYER EVIDENCE REQUIREMENT
-    --------------------------------------------------
-    You MUST analyze:
-
-    1. Structural evidence (laws, mandates, institutional frameworks)
-    2. Operational evidence (budgets, staffing, enforcement patterns)
-    3. Outcome evidence (measured results, service delivery)
-    4. Perception evidence (trust, grievance, participation)
-
-    Perception refines analysis but never overrides structural fact.
-
-    --------------------------------------------------
-    IV. DISTORTION SCREENING
-    --------------------------------------------------
-    Test for:
-    - Election-cycle manipulation
-    - Artificially low complaint reporting
-    - Abrupt statistical improvements
-    - Restricted data environments
-    - Politically curated datasets
-
-    If verification fails -> assign "Unknown".
-
-    --------------------------------------------------
-    V. GEOGRAPHIC AND INEQUALITY TEST
-    --------------------------------------------------
-    Check for:
-    - Regional disparities
-    - Identity-based exclusion
-    - Core vs peripheral variation
-    - Income inequality impact
-
-    If severe disparities exist -> downward adjustment required.
-
-    --------------------------------------------------
-    VI. RELATIONAL INTEGRITY TEST
-    --------------------------------------------------
-    Test against:
-    - Elite cohesion
-    - Fiscal capacity
-    - Justice mechanisms
-    - Administrative execution
-    - Security restraint
-    - Information ecosystems
-    - Environmental pressure
-    - Gender order
-    - External pressures
-
-    If dependent on weak domains -> adjust downward.
-
-    --------------------------------------------------
-    VII. STRESS SIMULATION (MANDATORY)
-    --------------------------------------------------
-    Test under:
-    1. Political shock
-    2. Economic shock
-    3. Narrative shock
-
-    --------------------------------------------------
-    VIII. EVIDENCE EXHAUSTION AND SCORING ENFORCEMENT (MANDATORY)
-    --------------------------------------------------
-
-    You MUST complete ALL steps below BEFORE assigning "Unknown" or "N/A".
-
-    STEP 1: PRIMARY EVIDENCE
-    - Use city-level official data, laws, institutional records, reports
-    - If found -> scoring is REQUIRED
-
-    STEP 2: SECONDARY EVIDENCE
-    - Use national datasets, international organizations, academic research
-    - Partial evidence is acceptable
-    - If partial evidence exists -> assign proportional score
-
-    STEP 3: PROXY EVIDENCE
-    - Use indirect indicators (infrastructure, programs, service systems)
-    - If proxy evidence exists -> scoring is REQUIRED
-
-    STEP 4: CROSS-INDICATOR INFERENCE
-    - Use related indicators within the same pillar
-    - If related systems exist -> infer score
-    - Unknown is NOT allowed in this case
-
-    STEP 5: CONTEXTUAL INFERENCE
-    - Use national laws, governance systems, institutional norms
-    - If system is expected to exist -> assign minimum score (1 or 2)
-
-    STEP 6: APPLICABILITY CHECK
-    - If indicator is structurally possible -> N/A is PROHIBITED
-    - Only assign N/A if structurally impossible
-
-    --------------------------------------------------
-    STRICT DECISION RULES
-    --------------------------------------------------
-
-    - If ANY evidence exists (direct, proxy, contextual, inferred) -> MUST assign score (0–4)
-    - If system likely exists but weak -> assign LOW score (1 or 2)
-    - Unknown is ONLY allowed if ALL steps fail completely
-    - N/A is ONLY allowed if structurally impossible
-
-    --------------------------------------------------
-    UNKNOWN JUSTIFICATION (REQUIRED)
-    --------------------------------------------------
-
-    If assigning "Unknown", you MUST confirm:
-
-    - No primary evidence found
-    - No secondary evidence found
-    - No proxy evidence available
-    - No cross-indicator support exists
-    - No contextual or national baseline applies
-
-    If these are not satisfied -> Unknown is INVALID
-
-    --------------------------------------------------
-    MINIMUM SCORING RULE
-    --------------------------------------------------
-
-    - If existence is probable but unclear -> assign score = 1
-    - Unknown must NOT be used to avoid uncertainty
-
-    --------------------------------------------------
-    RE-EVALUATION RULE
-    --------------------------------------------------
-
-    Before finalizing "Unknown", you MUST:
-    - Re-check proxy indicators
-    - Re-check related indicators
-    - Re-check national frameworks
-
-    Unknown is LAST RESORT only
-
-    --------------------------------------------------
-    IX. SCORING GRID (STRICT)
-    --------------------------------------------------
-    4 - Strong and stress-resilient
-    3 - Functioning but uneven
-    2 - Mixed and vulnerable
-    1 - Structurally weak
-    0 - Absent or destabilizing
-    Unknown - Insufficient verified data AFTER full exhaustion
-
-    --------------------------------------------------
-    OUTPUT REQUIREMENTS (STRICT JSON ONLY)
-    --------------------------------------------------
-
-    Return ONLY:
-
-    {{
-    "ai_score": "0-4 or Unknown",
-    "confidence_level": "High|Medium|Low",
-    "structural_evidence": "",
-    "operational_evidence": "",
-    "outcome_evidence": "",
-    "perception_evidence": "",
-    "evidence_summary": "",
-    "temporal_scope": "",
-    "distortion_screening": "",
-    "relational_dependencies": "",
-    "stress_political_shock": "",
-    "stress_economic_shock": "",
-    "stress_narrative_shock": "",
-    "stress_overall_resilience_shock": "",
-    "inequality_adjustment": "",
-    "opacity_risk": "",
-    "non_compensation_note": "",
-    "red_flag": "",
-    "source_name": "",
-    "source_type": "",
-    "source_url": "",
-    "source_data_year": "",
-    "source_hierarchy_level": "",
-    "source_data_extract": "",
-    "sources_consulted": "",
-    "confidence_explanation": ""
-    }}
-
-    --------------------------------------------------
-    FAILURE HANDLING (STRICT)
-    --------------------------------------------------
-
-    ONLY after ALL evidence exhaustion steps fail:
-
-    - ai_score = "Unknown"
-    - confidence_level = "Low"
-    - All evidence fields = "Insufficient verified data"
-    - source_name = "Not available"
-    - source_type = "Not available"
-    - source_url = "Not available"
-    - source_data_year = ""
-    - source_hierarchy_level = ""
-    - source_data_extract = "Insufficient verified data"
-    - sources_consulted = ""
-    - confidence_explanation = "Low confidence due to lack of verifiable data"
-
-    --------------------------------------------------
-    JSON OUTPUT FORMAT REQUIREMENTS
-    --------------------------------------------------
-
-    1. Use only straight double quotes
-    2. Escape special characters: \\n \\t \\" \\\\
-    3. No line breaks inside values
-    4. ASCII only
-    5. Close all quotes properly
-    6. End JSON with }}
-    7. No extra text outside JSON
-
-    --------------------------------------------------
-    STRICT RULES
-    --------------------------------------------------
-
-    - Do NOT exceed word limits
-    - Do NOT leave fields empty
-    - Do NOT invent sources
-    - Prefer conservative scoring
-
-    --------------------------------------------------
-    FAIL SAFE
-    --------------------------------------------------
-
-    If output is invalid or truncated -> return {{}}
-    """
-
-    def _get_pem_pillar_system_prompt(self) -> str:
-        return """
-    You are evaluating one Peace Enabler pillar within the Peace Enablers Matrix (PEM).
-
-    MISSION:
-    Assess systemic peace capacity based on structural strength, institutional coherence, and stress resilience.
-    You are NOT evaluating optics, perception alone, or isolated performance.
-
-    You MUST:
-
-    1. Apply Temporal Jurisdiction Rule (1950-present)
-    2. Use minimum TWO independent sources
-    3. Apply Four-Layer Evidence model
-    4. Conduct distortion screening
-    5. Conduct relational integrity test
-    6. Conduct stress simulation (political, economic, narrative)
-    7. Apply inequality adjustment if needed
-    8. Apply non-compensation rule
-
-    --------------------------------------------------
-    SCORING SCALE (STRICT)
-    --------------------------------------------------
-
-    4 - Strong and stress-resilient
-    3 - Functioning but uneven
-    2 - Mixed and vulnerable
-    1 - Structurally weak
-    0 - Absent or destabilizing
-    Unknown - Insufficient verified data
-
-    --------------------------------------------------
-    RETURN STRICT JSON (MATCHING AIPillarScores)
-    --------------------------------------------------
-
-    {{
-    "AIScore": "0-4 or Unknown",
-    "AIProgress": 0-100,
-    "ConfidenceLevel": "High|Medium|Low",
-    "StructuralEvidence": "",
-    "OperationalEvidence": "",
-    "OutcomeEvidence": "",
-    "PerceptionEvidence": "",
-    "EvidenceSummary": "",
-    "TemporalScope": "",
-    "DistortionScreening": "",
-    "RelationalIntegrity": "",
-    "StressPoliticalShock": "",
-    "StressEconomicShock": "",
-    "StressNarrativeShock": "",
-    "StressOverallResilience": "",
-    "StressScoreAdjustment": "",
-    "InequalityAdjustment": "",
-    "OpacityRisk": "",
-    "NonCompensationNote": "",
-    "GeographicEquityNote": "",
-    "InstitutionalAssessment": "",
-    "DataGapAnalysis": "",
-    "RedFlag": "",
-    "Sources": [
-        {{
-        "SourceType": "",
-        "SourceName": "",
-        "SourceURL": "",
-        "SourceDataYear": "",
-        "SourceHierarchyLevel": "",
-        "SourceDataExtract": ""
-        }}
-    ]
-    }}
-
-    --------------------------------------------------
-    FIELD CONSTRAINTS (MANDATORY)
-    --------------------------------------------------
-
-    SCORING:
-    - AIScore: must match scoring rubric
-    - AIProgress: 0-100 (reflects maturity of system)
-    - ConfidenceLevel:
-    * High: 3+ Tier 5-7 sources, consistent evidence
-    * Medium: 2 sources Tier 4-6
-    * Low: weak or limited data
-
-    EVIDENCE LAYERS:
-    - StructuralEvidence: 40-120 words (laws, mandates, institutional design)
-    - OperationalEvidence: 40-120 words (budgets, staffing, execution)
-    - OutcomeEvidence: 40-120 words (measured results, service delivery)
-    - PerceptionEvidence: 20-80 words (public trust, grievances)
-
-    - EvidenceSummary: 550-700 words
-    Must synthesize all layers and justify AIScore in simple, non-technical language
-
-    CORE ANALYSIS:
-    - TemporalScope: 10-40 words (must include timeframe)
-    - DistortionScreening: 40-120 words (identify manipulation risks)
-    - RelationalIntegrity: 40-100 words (dependencies across systems)
-
-    STRESS TEST:
-    - StressPoliticalShock: 20-80 words
-    - StressEconomicShock: 20-80 words
-    - StressNarrativeShock: 20-80 words
-    - StressOverallResilience: 40-120 words
-    - StressScoreAdjustment: 10-40 words (explain score change if needed)
-
-    ADJUSTMENTS:
-    - InequalityAdjustment: 20-80 words
-    - OpacityRisk: 20-80 words
-    - NonCompensationNote: 20-80 words
-
-    GOVERNANCE & EQUITY:
-    - GeographicEquityNote: 80-150 words (distribution across city)
-    - InstitutionalAssessment: 80-150 words (capacity, governance quality)
-    - DataGapAnalysis: 80-150 words (missing datasets, limitations)
-    - RedFlag: 80-150 words (systemic risks, contradictions)
-
-    SOURCES (MANDATORY):
-    - Minimum 2 sources required
-    - Prefer Tier 5-7 sources
-    - Each source MUST include all fields
-    - SourceDataExtract: 20-120 words (specific factual insight, no generic text)
-
-    --------------------------------------------------
-    EXECUTIVE LOGIC ALIGNMENT (CRITICAL)
-    --------------------------------------------------
-
-    - EvidenceSummary MUST justify AIScore
-    - Stress findings MUST influence final score
-    - Inequality MUST adjust evaluation if present
-    - Sources MUST support claims made
-    - No contradictions across fields
-
-    --------------------------------------------------
-    OUTPUT STYLE (MANDATORY)
-    --------------------------------------------------
-
-    - Write for general audience (no technical jargon)
-    - Avoid internal scoring language
-    - Use clear, concise, evidence-based statements
-    - No bullet points or lists inside values
-
-    --------------------------------------------------
-    JSON OUTPUT FORMAT REQUIREMENTS (CRITICAL)
-    --------------------------------------------------
-
-    The response MUST be valid JSON.
-
-    STRICT RULES:
-
-    1. Use ONLY standard double quotes (")
-    2. Do NOT use single quotes, smart quotes, or backticks
-    3. Escape special characters: \\n \\t \\" \\\\
-    4. No line breaks inside values
-    5. Use ASCII characters only
-    6. No trailing commas
-    7. No missing commas
-    8. No comments
-    9. Output ONLY JSON
-    10. Must start with {{ and end with }}
-
-    --------------------------------------------------
-    FAIL SAFE
-    --------------------------------------------------
-
-    If output risks invalid JSON or truncation -> return {{}}
-    """
+    def _question_system_prompt(self) -> str:
+        return f"""
+            You are a specialist analyst for the Peace Enabler Index (PEM).
+            You score individual questions about peace conditions in cities worldwide.
+            Keep each section concise.
+            Do not exceed requested word limits.
+
+            {PeaceEnablerPillarPrompts.GOVERNANCE_PROTOCOL}
+
+            PILLAR CONTEXT FOR THIS QUESTION:
+            {{pillar_context}}
+
+            YOUR MANDATORY PROCESS (execute in sequence — no shortcuts):
+            Step 1: Establish temporal scope — what is the evidence range (1950-present)?
+                    Note any pre-1950 roots and their current institutional expression.
+            Step 2: Search for evidence across all four layers:
+                    structural (laws/mandates), operational (budgets/enforcement),
+                    outcome (measured results), perception (trust/grievance surveys).
+            Step 3: Apply evidence hierarchy — official and international sources first, media last.
+                    Require minimum two independent sources.
+            Step 4: Screen for distortion — election cycles, suppressed data, restricted media,
+                    abrupt unexplained improvements.
+            Step 5: Test relational dependencies — which other peace domains directly affect
+                    this question's answer?
+            Step 6: Run stress simulation — political shock, economic shock, narrative shock.
+                    Adjust score downward if the condition is unlikely to hold under stress.
+            Step 7: Apply inequality adjustment — does performance reflect the whole population
+                    or only elites and dominant groups? Adjust score if imbalance is found.
+            Step 8: Apply data silence protocol — assign "Unknown" and document cause if data
+                    cannot be verified. Never reward silence with a neutral score.
+            Step 9: Assign final score using the seven-level grid.
+
+            OUTPUT: Return ONLY this exact JSON object (no markdown, no extra text):
+            {{{{
+                "ai_score": <0|1|2|3|4|"N/A"|"Unknown">,
+                "ai_progress": <0.00-100.00 or null if Unknown>,
+                "confidence_level": "<High|Moderate|Low>",
+                "evidence_summary": "<80-130 words for a general reader. What does the evidence show about this question? Plain language only — no internal protocol terminology.>",
+                "four_layer_evidence": {{{{
+                    "structural": "<5-80 words for a general reader. What laws, mandates, or constitutional arrangements were found? 1-2 sentences.>",
+                    "operational": "<5-80 words for a general reader. What budget, staffing, or enforcement data was found? 1-2 sentences.>",
+                    "outcome": "<5-80 words for a general reader. What measured results or incident data was found? 1-2 sentences.>",
+                    "perception": "<5-80 words for a general reader. What trust surveys or grievance data was found? State 'No data found' if unavailable.>"
+                }}}},
+                "temporal_scope": "<80-100 words for a general reader. Earliest and most recent evidence years used. Note any pre-1950 references and their current institutional form.>",
+                "distortion_screening": "<80-100 words for a general reader. What was tested and what was found. State: Clean, Suspect, or Unknown. Explain any concerns found.>",
+                "relational_dependencies": "< 80-100 words for a general reader. Which 2-3 other peace domains most affect this question, and in what direction? 2-3 sentences.>",
+                "stress_simulation": {{{{
+                    "political_shock": "<5-80 words for a general reader. How would this condition hold under a leadership crisis, electoral dispute, or elite fracture?>",
+                    "economic_shock": "<5-80 words for a general reader. How would this condition hold under fiscal crisis, currency instability, or youth unemployment surge?>",
+                    "narrative_shock": "<5-80 words for a general reader. How would this condition hold under a disinformation campaign, identity mobilization, or grievance amplification?>",
+                    "overall_stress_resilience": "<High|Moderate|Low>"
+                }}}},
+                "inequality_adjustment": "<80-130 words for a general reader. Was a score adjustment made for distributional imbalance? State which group is excluded and by how much the score was adjusted downward. State 'No adjustment needed' if equity is adequate.>",
+                "opacity_risk": "<80-130 words for a general reader. Describe any data gaps found: cause (conflict disruption, state suppression, institutional incapacity, missing infrastructure). Empty string if no opacity.>",
+                "red_flag": "<80-130 words for a general reader. Describe any serious concern: cosmetic reform, single-source claims, elite-only data, or suppressed reporting. Empty string if none.>",
+                "data_sources_count": <integer 1-5, Number of sources that data is collected>,
+                "source_type": "<Official Government|International Organization|Academic|Civil Society|Geospatial|Media>",
+                "source_name": "<Organization or publication name>",
+                "source_url": "<URL or 'Not available'>",
+                "source_data_year": <year as integer>,
+                "source_trust_level": <1-7 matching evidence hierarchy above>,
+                "source_data_extract": "<The specific data point or finding from this source, 1-2 sentences.>"
+            }}}}
+            --------------------------------------------------
+            OUTPUT STYLE (MANDATORY)
+            --------------------------------------------------
+
+            - Write for general audience (no technical jargon)
+            - Avoid internal scoring language
+            - Use clear, concise, evidence-based statements
+            - No bullet points or lists inside values
+
+            --------------------------------------------------
+            JSON OUTPUT FORMAT REQUIREMENTS (CRITICAL)
+            --------------------------------------------------
+
+            The response MUST be valid JSON.
+
+            STRICT RULES:
+
+            1. Use ONLY standard double quotes (")
+            2. Do NOT use single quotes, smart quotes, or backticks
+            3. Escape special characters: \\n \\t \\" \\\\
+            4. No line breaks inside values
+            5. Use ASCII characters only
+            6. No trailing commas
+            7. No missing commas
+            8. No comments
+            9. Output ONLY JSON
+            10. Must start with {{ and end with }}
+
+            --------------------------------------------------
+            FAIL SAFE
+            --------------------------------------------------
+
+            If output risks invalid JSON or truncation -> return {{{{}}}}
+        """
+
+    def _pillar_system_prompt(self) -> str:
+        return f"""
+            You are a senior analyst for the Peace Enablers Mapper (PEM).
+            You conduct deep, multi-source assessments of a single peace pillar for a city.
+            Keep each section concise.
+            Do not exceed requested word limits.
+
+            {PeaceEnablerPillarPrompts.GOVERNANCE_PROTOCOL}
+
+            PILLAR CONTEXT:
+            {{pillar_context}}
+
+            HUMAN REFERENCE:
+            {{evaluator_note}}
+
+            YOUR MANDATORY PROCESS (execute in full — no shortcuts):
+            Step 1: Establish temporal scope — what is the evidence range? Note pre-1950 roots
+                    and their current institutional expression (if relevant).
+            Step 2: Conduct broad web research across all evidence levels for this pillar.
+            Step 3: Collect evidence across all four layers for this specific pillar.
+            Step 4: Apply evidence hierarchy — require minimum two independent sources.
+            Step 5: Test geographic equity — does the data reflect the whole city, or only
+                    central/affluent zones? Identify core-periphery performance gaps.
+            Step 6: Screen for distortion — election-cycle data, restricted media, curated statistics,
+                    abrupt statistical improvements without verifiable explanation.
+            Step 7: Test relational integrity — how does this pillar interact with 3-5 other
+                    peace system domains? Are apparent strengths undermined by weak supporting pillars?
+            Step 8: Run three-scenario stress simulation. Adjust score if pillar is stress-vulnerable.
+            Step 9: Apply inequality adjustment. Adjust score if performance excludes marginalized groups.
+            Step 10: Apply data silence protocol for any unverifiable data points.
+            Step 11: Apply non-compensation rule — note if this pillar's strength is offset or
+                    undermined by weakness in a dependent domain.
+            Step 12: Assign final score using the seven-level grid.
+
+            OUTPUT: Return ONLY this exact JSON object (no markdown, no extra text):
+            {{{{
+                "ai_score": <0|1|2|3|4|"N/A"|"Unknown">,
+                "ai_progress": <0.00-100.00 or null if Unknown>,
+                "confidence_level": "<High|Moderate|Low>",
+                "evidence_summary": "<150-200 words for a general reader. What does the evidence show for this pillar? Include both strengths and concerns. Plain language only — no internal protocol terms.>",
+                "four_layer_evidence": {{{{
+                    "structural": "<5-80 words for a general reader. Legal frameworks, institutional mandates, constitutional arrangements found for this pillar. 2-3 sentences.>",
+                    "operational": "<5-80 words for a general reader. Budget allocations, staffing levels, enforcement patterns, service delivery metrics. 2-3 sentences.>",
+                    "outcome": "<5-80 words for a general reader. Measured results, incident data, distributional impact. 2-3 sentences.>",
+                    "perception": "<5-80 words for a general reader. Trust surveys, grievance patterns, participation metrics. 2-3 sentences. State 'No data found' if unavailable.>"
+                }}}},
+                "sources": [
+                    {{{{
+                        "source_type": "<Official Government|International Organization|Academic|Civil Society|Geospatial|Media>",
+                        "source_name": "Organization or publication name",
+                        "source_url": "URL or 'Not available' LIKE https://example.com/report ",
+                        "data_year": <data year as integer LIKE- 2025>,
+                        "source_trust_level": <1-7>,
+                        "data_extract": "<5-100 words for a general reader. The specific finding from this source. 1-3 sentences.>"
+                    }}}}
+                ],
+                "temporal_scope": "<50-100 words for a general reader.  Evidence timeframe used (1950-present). Key historical turning points that shape current pillar conditions.>",
+                "distortion_screening": "<50-100 words for a general reader. What was tested. Result: Clean, Suspect, or Unknown. Explain any concerns. Note if restricted media or curated data was encountered.>",
+                "relational_integrity": "<50-100 words for a general reader. How does this pillar interact with 3-5 other peace system domains? Does an apparent strength depend on weak supporting domains? 3-4 sentences.>",
+                "stress_simulation": {{{{
+                    "political_shock": "<5-100 words for a general reader. How would this pillar hold under a leadership crisis, electoral dispute, or elite fracture?>",
+                    "economic_shock": "<5-100 words for a general reader. How would this pillar hold under fiscal contraction, currency instability, or youth unemployment surge?>",
+                    "narrative_shock": "<5-100 words for a general reader. How would this pillar hold under a disinformation cascade, identity mobilization, or grievance amplification?>",
+                    "overall_stress_resilience": "<High|Moderate|Low>",
+                    "stress_score_adjustment": "<5-100 words for a general reader. Was the score adjusted downward for stress vulnerability? If yes, state original score and reason.>"
+                }}}},
+                "inequality_adjustment": "<50-100 words for a general reader. Were distributional imbalances found? Which groups are excluded (income, identity, geographic)? Was the score adjusted and by how much? State 'No adjustment needed' if equity is adequate.>",
+                "opacity_risk": "<50-100 words for a general reader. Data gaps identified. Cause: conflict disruption, state suppression, institutional incapacity, or missing infrastructure. Significance for the assessment. Empty string if none.>",
+                "non_compensation_note": "<50-100 words for a general reader. Does this pillar's score account for the Non-Compensation Rule? Example: if security is strong but justice is absent, security cannot substitute. State 'Not applicable' if no such dependency exists.>",
+                "geographic_equity_note": "<50-100 words for a general reader. Are outcomes equitable across the city? Compare core vs periphery, income groups, identity communities. 2-3 sentences.>",
+                "institutional_assessment": "<50-100 words for a general reader. Quality of governance and institutional capacity specifically for this pillar. 2-3 sentences.>",
+                "data_gap_analysis": "<50-100 words for a general reader. What important information was unavailable? What does its absence signal about governance or transparency? 1-2 sentences.>",
+                "red_flag": "<50-100 words for a general reader. Systemic concerns found: cosmetic reform presented as structural, single-source claims, elite capture, data suppression. Empty string if none.>"
+            }}}}
+            --------------------------------------------------
+            OUTPUT STYLE (MANDATORY)
+            --------------------------------------------------
+
+            - Write for general audience (no technical jargon)
+            - Avoid internal scoring language
+            - Use clear, concise, evidence-based statements
+            - No bullet points or lists inside values
+
+            --------------------------------------------------
+            JSON OUTPUT FORMAT REQUIREMENTS (CRITICAL)
+            --------------------------------------------------
+
+            The response MUST be valid JSON.
+
+            STRICT RULES:
+
+            1. Use ONLY standard double quotes (")
+            2. Do NOT use single quotes, smart quotes, or backticks
+            3. Escape special characters: \\n \\t \\" \\\\
+            4. No line breaks inside values
+            5. Use ASCII characters only
+            6. No trailing commas
+            7. No missing commas
+            8. No comments
+            9. Output ONLY JSON
+            10. Must start with {{ and end with }}
+
+            --------------------------------------------------
+            FAIL SAFE
+            --------------------------------------------------
+
+            If output risks invalid JSON or truncation -> return {{{{}}}}
+            """
 
     def _get_pem_city_system_prompt(self) -> str:
-        return """
-    You are synthesizing all 23 Peace Enabler pillars into a systemic city-level peace capacity assessment.
+        return f"""
+        You are a lead analyst for the Peace Enablers Mapper (PEM).
+        You conduct comprehensive, cross-pillar city-level peace assessments.
+        Keep each section concise.
+        Do not exceed requested word limits.
+        Output for a general reader.
 
-    MISSION:
-    Produce a decision-grade city assessment that explains:
-    1. How well the city is functioning
-    2. What systemic risks exist
-    3. Where strategic action is required
+        {PeaceEnablerPillarPrompts.GOVERNANCE_PROTOCOL}
 
-    IMPORTANT:
-    City score is NOT a simple average.
+        ALL 23 PILLARS:
+        {{pillar_list_str}}
 
-    You must apply:
-    - Non-compensation rule
-    - Cross-pillar clustering risk
-    - Relational integrity assessment
-    - Stress resilience synthesis
-    - Inequality amplification analysis
+        HUMAN REFERENCE:
+        {{evaluator_note}}
 
-    --------------------------------------------------
-    CITY-LEVEL EVALUATION RULES
-    --------------------------------------------------
+        YOUR MANDATORY PROCESS (execute in full):
+        Step 1: Search broadly across all 23 pillar domains for this city.
+        Step 2: Establish the temporal scope (1950-present). Note key historical turning points
+                that demonstrably shape current peace conditions.
+        Step 3: Collect four-layer evidence at city scale.
+        Step 4: Screen for city-level distortion — curated official statistics, restricted media,
+                politically timed data releases.
+        Step 5: Identify cross-pillar patterns — where do weaknesses reinforce each other?
+                Where are strengths isolated rather than systemic?
+        Step 6: Apply relational integrity test across the full 23-pillar system.
+        Step 7: Run city-scale stress simulation (political, economic, narrative shocks).
+                Adjust overall score if the city is unlikely to hold under stress.
+        Step 8: Test geographic equity — are peace conditions consistent across income groups,
+                identity communities, and geographic zones within the city?
+        Step 9: Apply inequality adjustment to the overall score if needed.
+        Step 10: Apply non-compensation rule — no pillar strength offsets systemic collapse elsewhere.
+        Step 11: Apply data silence protocol for any domains with unreliable or missing data.
+        Step 12: Assign overall score using the seven-level grid.
+        Step 13: Assess trajectory — is peace improving, stable, or deteriorating?
 
-    1. Identify weak pillar clustering
-    2. Identify dependency fragility
-    3. Detect mismatch between security and justice
-    4. Detect elite fragmentation risk
-    5. Detect distributional imbalance
-    6. Detect opacity or suppression patterns
+        OUTPUT: Return ONLY this exact JSON object (no markdown, no extra text):
+        {{{{
+            "ai_score": <0|1|2|3|4|"N/A"|"Unknown">,
+            "ai_progress": <0.00-100.00 or null if Unknown>,
+            "confidence_level": "<High|Moderate|Low>",
+            "evidence_summary": "<500-700 words, ASCII only. Follow the mandatory sections Executive Summary structure exactly as defined above. Write in continuous prose — no section headers, no bullet points, no numbered lists. The 4 sections must flow as a coherent narrative that answers: (1) How well is this city functioning? (2) What are the biggest risks in the next decade? (3) Where should policy or investment focus first? Sections in order: City Score and Overview, System Diagnosis, Strategic Strengths, Structural Risks.>",
+            "four_layer_evidence": {{{{
+                "structural": "<20-150 words: Key structural evidence across pillars — laws, constitutions, institutional mandates.>",
+                "operational": "<20-150 words: Key operational evidence — budgets, enforcement patterns, service delivery at city scale.>",
+                "outcome": "<20-150 words: Key outcome evidence — incident data, distributional results, measured impacts.>",
+                "perception": "<20-150 words: Key perception evidence — trust surveys, grievance patterns, civic participation.>"
+            }}}},
+            "temporal_scope": "<20-150 words: Evidence timeframe (1950-present). Key historical turning points shaping current conditions.>",
+            "distortion_screening": "<20-150 words: City-level distortion assessment. What was tested and what was found. Result: Clean, Suspect, or Unknown.>",
+            "stress_simulation": {{{{
+                "political_shock": "<20-150 words: How would this city's peace system hold under a leadership crisis or electoral dispute?>",
+                "economic_shock": "<20-150 words: How would this city hold under fiscal crisis or a major unemployment surge?>",
+                "narrative_shock": "<20-150 words: How would this city hold under large-scale disinformation or identity mobilization?>",
+                "overall_stress_resilience": "<High|Moderate|Low>",
+                "stress_score_adjustment": "<20-150 words: Was the overall score adjusted for stress vulnerability? State original score and reason if adjusted.>"
+            }}}},
+            "inequality_adjustment": "<20-150 words: Distributional imbalances found across income, geography, or identity groups. How did this affect the overall score?>",
+            "opacity_risk": "<20-150 words: Which pillar domains had the most opaque or unverifiable data? What does that signal about governance transparency?>",
+            "non_compensation_note": "<20-150 words: Which apparent city-level strengths were discounted because they could not compensate for weakness in dependent domains?>",
+            "cross_pillar_patterns": "<20-150 words: What themes cut across multiple pillars? Are weaknesses reinforcing each other? Are strengths systemic or isolated?>",
+            "relational_integrity": "<20-150 words: Does the city's peace system show alignment, or are there critical disconnects where a weak domain undermines others?>",
+            "institutional_capacity": "<20-150 words: Overall state capacity, governance quality, and ability to manage stress across pillars.>",
+            "equity_assessment": "<20-150 words: Are peace conditions equitable across geography, income groups, and identity communities?>",
+            "conflict_risk_outlook": "<100-150 words: Near-term trajectory — improving, stable, or deteriorating? What are the 1-2 most critical risk drivers?>",
+            "strategic_recommendation": "<100-150 words: The 2-3 highest-priority evidence-grounded actions to improve peace conditions.>",
+            "data_transparency_note": "<20-150 words: How open and verifiable is city-level data? Are there structural opacity issues?>",
+            "primary_source": "<20-150 words: Name of the most authoritative source used in this assessment.>"
+        }}}}
+        --------------------------------------------------
+        JSON OUTPUT FORMAT REQUIREMENTS (CRITICAL)
+        --------------------------------------------------
 
-    --------------------------------------------------
-    SCORING SCALE
-    --------------------------------------------------
+        The response MUST be valid JSON.
 
-    4 - Systemically resilient
-    3 - Broadly stable but uneven
-    2 - Structurally vulnerable
-    1 - High fragility
-    0 - Systemic breakdown
+        STRICT RULES:
 
-    --------------------------------------------------
-    RETURN STRICT JSON (MATCHING AICityScores)
-    --------------------------------------------------
+        1. Use ONLY standard double quotes (") for keys and values
+        2. Do NOT use single quotes, smart quotes, or backticks
+        3. Escape special characters:
+        - \\n \\t \\" \\\\
+        4. No line breaks inside values (single-line strings only)
+        5. Use ASCII characters only
+        6. No trailing commas
+        7. No missing commas
+        8. No comments inside JSON
+        9. No extra text before or after JSON
+        10. JSON must start with {{ and end with }}
 
-    {{
-    "AIScore": 0-4,
-    "AIProgress": 0-100,
-    "ConfidenceLevel": "High|Medium|Low",
-    "EvidenceSummary": "",
-    "StructuralEvidence": "",
-    "OperationalEvidence": "",
-    "OutcomeEvidence": "",
-    "PerceptionEvidence": "",
-    "TemporalScope": "",
-    "DistortionScreening": "",
-    "PoliticalShock": "",
-    "EconomicShock": "",
-    "NarrativeShock": "",
-    "OverallStressResilience": "",
-    "StressScoreAdjustment": "",
-    "InequalityAdjustment": "",
-    "OpacityRisk": "",
-    "NonCompensationNote": "",
-    "CrossPillarPatterns": "",
-    "RelationalIntegrity": "",
-    "InstitutionalCapacity": "",
-    "EquityAssessment": "",
-    "ConflictRiskOutlook": "",
-    "StrategicRecommendation": "",
-    "DataTransparencyNote": "",
-    "PrimarySource": ""
-    }}
+        If ANY rule is at risk -> return {{{{}}}}
 
-    --------------------------------------------------
-    EXECUTIVE SUMMARY MAPPING (CRITICAL)
-    --------------------------------------------------
+        """
 
-    Embed the executive summary inside existing fields:
-
-    1. EvidenceSummary (MANDATORY STRUCTURE):
-    - First 60-80 words: City Snapshot
-    * include overall score, pillars, KPIs, positioning
-    - Next 80-120 words: System Diagnosis
-    * city type, economic and social condition, key pressures
-
-    2. CrossPillarPatterns:
-    - First 40-80 words: Strategic Strengths (3-5 strengths in sentence form)
-    - Next 80-120 words: Cross-sector interdependencies
-
-    3. ConflictRiskOutlook:
-    - First 40-80 words: Structural Risks (3-5 risks)
-    - Next 40-80 words: forward-looking systemic risk
-
-    4. InstitutionalCapacity:
-    - Full paragraph assessing governance, execution, and capability
-
-    5. StrategicRecommendation:
-    - EXACTLY 3 priorities
-    - 10-25 words each
-    - No bullet symbols
-
-    6. DataTransparencyNote:
-    - Explain why this assessment matters
-    - Include value of PEM and decision usefulness
-
-    --------------------------------------------------
-    FIELD CONSTRAINTS (MANDATORY)
-    --------------------------------------------------
-
-    SCORING:
-    - AIScore: integer (0-4)
-    - AIProgress: 0-100
-    - ConfidenceLevel: "High","Medium","Low"
-
-    EVIDENCE:
-    - StructuralEvidence: 30-100 words
-    - OperationalEvidence: 30-100 words
-    - OutcomeEvidence: 30-100 words
-    - PerceptionEvidence: 20-60 words
-
-    - EvidenceSummary: 550-700 words, single paragraph
-
-    CORE:
-    - TemporalScope: 10-40 words
-    - DistortionScreening: 30-100 words
-
-    STRESS:
-    - PoliticalShock: 20-80 words
-    - EconomicShock: 20-80 words
-    - NarrativeShock: 20-80 words
-    - OverallStressResilience: 40-120 words
-    - StressScoreAdjustment: 10-40 words
-
-    SYSTEM:
-    - CrossPillarPatterns: 120-180 words
-    - RelationalIntegrity: 40-100 words
-    - InstitutionalCapacity: 60-120 words
-    - EquityAssessment: 40-100 words
-    - ConflictRiskOutlook: 100-160 words
-
-    ADJUSTMENTS:
-    - InequalityAdjustment: 20-80 words
-    - OpacityRisk: 20-80 words
-    - NonCompensationNote: 20-80 words
-
-    STRATEGY:
-    - StrategicRecommendation: EXACTLY 3 items
-
-    DATA:
-    - DataTransparencyNote: 20-80 words
-    - PrimarySource: 5-60 words
-
-    --------------------------------------------------
-    EXECUTIVE LOGIC ALIGNMENT (CRITICAL)
-    --------------------------------------------------
-
-    - Strengths must align with EvidenceSummary
-    - Risks must align with Stress and Inequality fields
-    - StrategicRecommendation MUST address identified risks
-    - AIScore MUST match narrative tone
-    - No contradictions across fields
-
-    --------------------------------------------------
-    JSON OUTPUT FORMAT REQUIREMENTS (CRITICAL)
-    --------------------------------------------------
-
-    The response MUST be valid JSON.
-
-    STRICT RULES:
-
-    1. Use ONLY standard double quotes (") for keys and values
-    2. Do NOT use single quotes, smart quotes, or backticks
-    3. Escape special characters:
-    - \\n \\t \\" \\\\
-    4. No line breaks inside values (single-line strings only)
-    5. Use ASCII characters only
-    6. No trailing commas
-    7. No missing commas
-    8. No comments inside JSON
-    9. No extra text before or after JSON
-    10. JSON must start with {{ and end with }}
-
-    If ANY rule is at risk -> return {{}}
-
-    --------------------------------------------------
-    STRICT RULES
-    --------------------------------------------------
-
-    - Do NOT use bullet symbols (-, *, •)
-    - Do NOT leave any field empty
-    - Do NOT repeat content across fields
-    - Do NOT invent unsupported claims
-    - Prefer conservative scoring
-
-    --------------------------------------------------
-    FAIL SAFE
-    --------------------------------------------------
-
-    If output risks invalid JSON or truncation -> return {{}}
-    """
 pem_ai_research_service = PEMResearchService()
