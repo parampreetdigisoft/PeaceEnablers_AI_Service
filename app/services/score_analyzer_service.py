@@ -86,9 +86,9 @@ class ScoreAnalyzerService:
 
             for city in df.itertuples(index=False):
                 try:
-                    #await self.analyze_PillarQuestions(city)
-                     await self.analyze_cityPillar(city)
-                    #await self.analyze_city(city)
+                     await self.analyze_PillarQuestions(city)
+                    #  await self.analyze_cityPillar(city)
+                    #  await self.analyze_city(city)
                 except Exception as e:
                     logger.error(f"Failed to analyze city {city.CityID} ({city.CityName}): {e}")
                     continue

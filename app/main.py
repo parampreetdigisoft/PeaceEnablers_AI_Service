@@ -43,7 +43,7 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 # Create FastAPI app
 app = FastAPI(
-    title="Assessment AI Service",
+    title="PEM AI Service",
     description="Analysis API. **Authentication Required**: Add your API key using the 'Authorize' button below.",
     version="1.0.0",
     docs_url=None,  # Disable default docs to customize
@@ -60,7 +60,7 @@ app.add_middleware(
 )
 
 # Add API Key Authentication Middleware
-app.add_middleware(APIKeyMiddleware)
+# app.add_middleware(APIKeyMiddleware)
 
 
 # Custom OpenAPI schema with API Key security
@@ -69,7 +69,7 @@ def custom_openapi():
         return app.openapi_schema
     
     openapi_schema = get_openapi(
-        title="Assessment AI Service",
+        title="PEM AI Service",
         version="1.0.0",
         description="Analysis API with API Key Authentication",
         routes=app.routes,
@@ -192,7 +192,7 @@ app.include_router(score_analysis_router)
 @app.get("/", summary="API Root", tags=["General"])
 async def root():
     return {
-        "service": "Assessment AI Service",
+        "service": "PEM AI Service",
         "status": "running",
         "model_in_use": settings.LLM_PROVIDER,
         "routes": {

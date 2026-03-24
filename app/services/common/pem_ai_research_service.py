@@ -635,32 +635,29 @@ class PEMResearchService:
     IV. DISTORTION SCREENING
     --------------------------------------------------
     Test for:
-
     - Election-cycle manipulation
     - Artificially low complaint reporting
     - Abrupt statistical improvements
     - Restricted data environments
     - Politically curated datasets
 
-    If verification fails → assign "Unknown".
+    If verification fails -> assign "Unknown".
 
     --------------------------------------------------
     V. GEOGRAPHIC AND INEQUALITY TEST
     --------------------------------------------------
     Check for:
-
     - Regional disparities
     - Identity-based exclusion
     - Core vs peripheral variation
     - Income inequality impact
 
-    If severe disparities exist → downward adjustment required.
+    If severe disparities exist -> downward adjustment required.
 
     --------------------------------------------------
     VI. RELATIONAL INTEGRITY TEST
     --------------------------------------------------
-    This pillar must be tested against:
-
+    Test against:
     - Elite cohesion
     - Fiscal capacity
     - Justice mechanisms
@@ -671,29 +668,98 @@ class PEMResearchService:
     - Gender order
     - External pressures
 
-    If apparent strength depends on weak supporting domains → adjust downward.
+    If dependent on weak domains -> adjust downward.
 
     --------------------------------------------------
     VII. STRESS SIMULATION (MANDATORY)
     --------------------------------------------------
-    Test this pillar under:
-
+    Test under:
     1. Political shock
     2. Economic shock
     3. Narrative shock
 
-    If the pillar would not remain functional under stress → score must reflect fragility.
-
     --------------------------------------------------
-    VIII. SCORING GRID (STRICT)
+    VIII. EVIDENCE EXHAUSTION AND SCORING ENFORCEMENT (MANDATORY)
     --------------------------------------------------
 
-    4 - Strong and stress-resilient  
-    3 - Functioning but uneven  
-    2 - Mixed and vulnerable  
-    1 - Structurally weak  
-    0 - Absent or destabilizing  
-    Unknown - Insufficient verified data  
+    You MUST complete ALL steps below BEFORE assigning "Unknown" or "N/A".
+
+    STEP 1: PRIMARY EVIDENCE
+    - Use city-level official data, laws, institutional records, reports
+    - If found -> scoring is REQUIRED
+
+    STEP 2: SECONDARY EVIDENCE
+    - Use national datasets, international organizations, academic research
+    - Partial evidence is acceptable
+    - If partial evidence exists -> assign proportional score
+
+    STEP 3: PROXY EVIDENCE
+    - Use indirect indicators (infrastructure, programs, service systems)
+    - If proxy evidence exists -> scoring is REQUIRED
+
+    STEP 4: CROSS-INDICATOR INFERENCE
+    - Use related indicators within the same pillar
+    - If related systems exist -> infer score
+    - Unknown is NOT allowed in this case
+
+    STEP 5: CONTEXTUAL INFERENCE
+    - Use national laws, governance systems, institutional norms
+    - If system is expected to exist -> assign minimum score (1 or 2)
+
+    STEP 6: APPLICABILITY CHECK
+    - If indicator is structurally possible -> N/A is PROHIBITED
+    - Only assign N/A if structurally impossible
+
+    --------------------------------------------------
+    STRICT DECISION RULES
+    --------------------------------------------------
+
+    - If ANY evidence exists (direct, proxy, contextual, inferred) -> MUST assign score (0–4)
+    - If system likely exists but weak -> assign LOW score (1 or 2)
+    - Unknown is ONLY allowed if ALL steps fail completely
+    - N/A is ONLY allowed if structurally impossible
+
+    --------------------------------------------------
+    UNKNOWN JUSTIFICATION (REQUIRED)
+    --------------------------------------------------
+
+    If assigning "Unknown", you MUST confirm:
+
+    - No primary evidence found
+    - No secondary evidence found
+    - No proxy evidence available
+    - No cross-indicator support exists
+    - No contextual or national baseline applies
+
+    If these are not satisfied -> Unknown is INVALID
+
+    --------------------------------------------------
+    MINIMUM SCORING RULE
+    --------------------------------------------------
+
+    - If existence is probable but unclear -> assign score = 1
+    - Unknown must NOT be used to avoid uncertainty
+
+    --------------------------------------------------
+    RE-EVALUATION RULE
+    --------------------------------------------------
+
+    Before finalizing "Unknown", you MUST:
+    - Re-check proxy indicators
+    - Re-check related indicators
+    - Re-check national frameworks
+
+    Unknown is LAST RESORT only
+
+    --------------------------------------------------
+    IX. SCORING GRID (STRICT)
+    --------------------------------------------------
+    4 - Strong and stress-resilient
+    3 - Functioning but uneven
+    2 - Mixed and vulnerable
+    1 - Structurally weak
+    0 - Absent or destabilizing
+    Unknown - Insufficient verified data AFTER full exhaustion
 
     --------------------------------------------------
     OUTPUT REQUIREMENTS (STRICT JSON ONLY)
@@ -731,44 +797,63 @@ class PEMResearchService:
     }}
 
     --------------------------------------------------
+    FAILURE HANDLING (STRICT)
+    --------------------------------------------------
+
+    ONLY after ALL evidence exhaustion steps fail:
+
+    - ai_score = "Unknown"
+    - confidence_level = "Low"
+    - All evidence fields = "Insufficient verified data"
+    - source_name = "Not available"
+    - source_type = "Not available"
+    - source_url = "Not available"
+    - source_data_year = ""
+    - source_hierarchy_level = ""
+    - source_data_extract = "Insufficient verified data"
+    - sources_consulted = ""
+    - confidence_explanation = "Low confidence due to lack of verifiable data"
+
+    --------------------------------------------------
     JSON OUTPUT FORMAT REQUIREMENTS
     --------------------------------------------------
 
-    CRITICAL: The response MUST be valid, parseable JSON. Follow these rules STRICTLY:
-
-    1. Use ONLY straight double quotes (") for all JSON keys and string values.
-    2. Do NOT use smart quotes or curly quotes.
-    3. Escape all special characters in string values:
-    - Newlines: \\n
-    - Tabs: \\t
-    - Quotes within strings: \\" 
-    - Backslashes: \\\\
-    4. Do NOT include actual line breaks inside string values.
-    5. Use regular hyphens (-) not em-dashes or en-dashes.
-    6. Use ASCII characters only. Avoid Unicode characters or typographic symbols.
-    7. Ensure every string value is properly closed with quotes.
-    8. Ensure the JSON object ends with a closing brace }}.
-    9. Keep responses concise to avoid truncation.
+    1. Use only straight double quotes
+    2. Escape special characters: \\n \\t \\" \\\\
+    3. No line breaks inside values
+    4. ASCII only
+    5. Close all quotes properly
+    6. End JSON with }}
+    7. No extra text outside JSON
 
     --------------------------------------------------
-    FAILURE HANDLING
+    STRICT RULES
     --------------------------------------------------
 
-    If the response risks truncation, exceeds limits, or violates JSON rules → return {{}} only.
+    - Do NOT exceed word limits
+    - Do NOT leave fields empty
+    - Do NOT invent sources
+    - Prefer conservative scoring
+
+    --------------------------------------------------
+    FAIL SAFE
+    --------------------------------------------------
+
+    If output is invalid or truncated -> return {{}}
     """
 
     def _get_pem_pillar_system_prompt(self) -> str:
         return """
     You are evaluating one Peace Enabler pillar within the Peace Enablers Matrix (PEM).
 
-    Your task is to assess systemic peace capacity — not performance optics.
-
-    Apply ALL governance rules from the AI Master Governance Protocol.
+    MISSION:
+    Assess systemic peace capacity based on structural strength, institutional coherence, and stress resilience.
+    You are NOT evaluating optics, perception alone, or isolated performance.
 
     You MUST:
 
     1. Apply Temporal Jurisdiction Rule (1950-present)
-    2. Use minimum two independent sources
+    2. Use minimum TWO independent sources
     3. Apply Four-Layer Evidence model
     4. Conduct distortion screening
     5. Conduct relational integrity test
@@ -796,10 +881,10 @@ class PEMResearchService:
     "AIProgress": 0-100,
     "ConfidenceLevel": "High|Medium|Low",
     "StructuralEvidence": "",
-    "EvidenceSummary": "",
     "OperationalEvidence": "",
     "OutcomeEvidence": "",
     "PerceptionEvidence": "",
+    "EvidenceSummary": "",
     "TemporalScope": "",
     "DistortionScreening": "",
     "RelationalIntegrity": "",
@@ -828,42 +913,116 @@ class PEMResearchService:
     }}
 
     --------------------------------------------------
-    JSON OUTPUT FORMAT REQUIREMENTS
+    FIELD CONSTRAINTS (MANDATORY)
     --------------------------------------------------
 
-    CRITICAL: The response MUST be valid, parseable JSON. Follow these rules STRICTLY:
+    SCORING:
+    - AIScore: must match scoring rubric
+    - AIProgress: 0-100 (reflects maturity of system)
+    - ConfidenceLevel:
+    * High: 3+ Tier 5-7 sources, consistent evidence
+    * Medium: 2 sources Tier 4-6
+    * Low: weak or limited data
 
-    1. Use ONLY straight double quotes (") for all JSON keys and string values.
-    2. Do NOT use smart quotes (" "), curly quotes, or any Unicode quote variants.
-    3. Escape all special characters in string values:
-    - Newlines: \\n
-    - Tabs: \\t
-    - Quotes within strings: \\" 
-    - Backslashes: \\\\
-    4. Do NOT include actual line breaks inside string values.
-    5. Use regular hyphens (-) not em-dashes (—) or en-dashes (–).
-    6. Use ASCII characters only. Avoid Unicode characters such as smart apostrophes or typographic symbols.
-    7. Ensure all string values are properly closed with quotes.
-    8. Ensure the JSON object ends with a closing brace }}.
-    9. Keep responses concise to avoid truncation.
+    EVIDENCE LAYERS:
+    - StructuralEvidence: 40-120 words (laws, mandates, institutional design)
+    - OperationalEvidence: 40-120 words (budgets, staffing, execution)
+    - OutcomeEvidence: 40-120 words (measured results, service delivery)
+    - PerceptionEvidence: 20-80 words (public trust, grievances)
+
+    - EvidenceSummary: 550-700 words
+    Must synthesize all layers and justify AIScore in simple, non-technical language
+
+    CORE ANALYSIS:
+    - TemporalScope: 10-40 words (must include timeframe)
+    - DistortionScreening: 40-120 words (identify manipulation risks)
+    - RelationalIntegrity: 40-100 words (dependencies across systems)
+
+    STRESS TEST:
+    - StressPoliticalShock: 20-80 words
+    - StressEconomicShock: 20-80 words
+    - StressNarrativeShock: 20-80 words
+    - StressOverallResilience: 40-120 words
+    - StressScoreAdjustment: 10-40 words (explain score change if needed)
+
+    ADJUSTMENTS:
+    - InequalityAdjustment: 20-80 words
+    - OpacityRisk: 20-80 words
+    - NonCompensationNote: 20-80 words
+
+    GOVERNANCE & EQUITY:
+    - GeographicEquityNote: 80-150 words (distribution across city)
+    - InstitutionalAssessment: 80-150 words (capacity, governance quality)
+    - DataGapAnalysis: 80-150 words (missing datasets, limitations)
+    - RedFlag: 80-150 words (systemic risks, contradictions)
+
+    SOURCES (MANDATORY):
+    - Minimum 2 sources required
+    - Prefer Tier 5-7 sources
+    - Each source MUST include all fields
+    - SourceDataExtract: 20-120 words (specific factual insight, no generic text)
 
     --------------------------------------------------
-    FAILURE HANDLING
+    EXECUTIVE LOGIC ALIGNMENT (CRITICAL)
     --------------------------------------------------
 
-    If the response risks truncation, exceeds limits, or violates JSON rules, return {{}} only.
+    - EvidenceSummary MUST justify AIScore
+    - Stress findings MUST influence final score
+    - Inequality MUST adjust evaluation if present
+    - Sources MUST support claims made
+    - No contradictions across fields
+
+    --------------------------------------------------
+    OUTPUT STYLE (MANDATORY)
+    --------------------------------------------------
+
+    - Write for general audience (no technical jargon)
+    - Avoid internal scoring language
+    - Use clear, concise, evidence-based statements
+    - No bullet points or lists inside values
+
+    --------------------------------------------------
+    JSON OUTPUT FORMAT REQUIREMENTS (CRITICAL)
+    --------------------------------------------------
+
+    The response MUST be valid JSON.
+
+    STRICT RULES:
+
+    1. Use ONLY standard double quotes (")
+    2. Do NOT use single quotes, smart quotes, or backticks
+    3. Escape special characters: \\n \\t \\" \\\\
+    4. No line breaks inside values
+    5. Use ASCII characters only
+    6. No trailing commas
+    7. No missing commas
+    8. No comments
+    9. Output ONLY JSON
+    10. Must start with {{ and end with }}
+
+    --------------------------------------------------
+    FAIL SAFE
+    --------------------------------------------------
+
+    If output risks invalid JSON or truncation -> return {{}}
     """
 
     def _get_pem_city_system_prompt(self) -> str:
         return """
     You are synthesizing all 23 Peace Enabler pillars into a systemic city-level peace capacity assessment.
 
+    MISSION:
+    Produce a decision-grade city assessment that explains:
+    1. How well the city is functioning
+    2. What systemic risks exist
+    3. Where strategic action is required
+
     IMPORTANT:
     City score is NOT a simple average.
 
     You must apply:
     - Non-compensation rule
-    - Cross-pillar clustering risk analysis
+    - Cross-pillar clustering risk
     - Relational integrity assessment
     - Stress resilience synthesis
     - Inequality amplification analysis
@@ -872,22 +1031,22 @@ class PEMResearchService:
     CITY-LEVEL EVALUATION RULES
     --------------------------------------------------
 
-    1. Identify weak pillar clustering.
-    2. Identify dependency fragility.
-    3. Detect mismatch between security and justice.
-    4. Detect elite fragmentation risk.
-    5. Detect distributional imbalance.
-    6. Detect opacity or suppression patterns.
+    1. Identify weak pillar clustering
+    2. Identify dependency fragility
+    3. Detect mismatch between security and justice
+    4. Detect elite fragmentation risk
+    5. Detect distributional imbalance
+    6. Detect opacity or suppression patterns
 
     --------------------------------------------------
     SCORING SCALE
     --------------------------------------------------
 
-    4 - Systemically resilient  
-    3 - Broadly stable but uneven  
-    2 - Structurally vulnerable  
-    1 - High fragility  
-    0 - Systemic breakdown  
+    4 - Systemically resilient
+    3 - Broadly stable but uneven
+    2 - Structurally vulnerable
+    1 - High fragility
+    0 - Systemic breakdown
 
     --------------------------------------------------
     RETURN STRICT JSON (MATCHING AICityScores)
@@ -923,33 +1082,130 @@ class PEMResearchService:
     }}
 
     --------------------------------------------------
-    JSON OUTPUT FORMAT REQUIREMENTS
+    EXECUTIVE SUMMARY MAPPING (CRITICAL)
     --------------------------------------------------
 
-    CRITICAL: The response MUST be valid, parseable JSON. Follow these rules STRICTLY:
+    Embed the executive summary inside existing fields:
 
-    1. Use ONLY straight double quotes (") for all JSON keys and string values.
-    2. Do NOT use smart quotes (" "), curly quotes, or any Unicode quote variants.
-    3. Escape all special characters in string values:
-    - Newlines: \\n
-    - Tabs: \\t
-    - Quotes within strings: \\" 
-    - Backslashes: \\\\
-    4. Do NOT include actual line breaks inside string values.
-    5. Use regular hyphens (-) not em-dashes (—) or en-dashes (–).
-    6. Use ASCII characters only. Avoid Unicode characters such as:
-    - smart apostrophes
-    - typographic quotes
-    - long dashes
-    7. Keep text concise and preferably single paragraph fields.
-    8. Ensure every string value is properly closed with quotes.
-    9. Ensure the JSON object ends with a closing brace }}.
+    1. EvidenceSummary (MANDATORY STRUCTURE):
+    - First 60-80 words: City Snapshot
+    * include overall score, pillars, KPIs, positioning
+    - Next 80-120 words: System Diagnosis
+    * city type, economic and social condition, key pressures
+
+    2. CrossPillarPatterns:
+    - First 40-80 words: Strategic Strengths (3-5 strengths in sentence form)
+    - Next 80-120 words: Cross-sector interdependencies
+
+    3. ConflictRiskOutlook:
+    - First 40-80 words: Structural Risks (3-5 risks)
+    - Next 40-80 words: forward-looking systemic risk
+
+    4. InstitutionalCapacity:
+    - Full paragraph assessing governance, execution, and capability
+
+    5. StrategicRecommendation:
+    - EXACTLY 3 priorities
+    - 10-25 words each
+    - No bullet symbols
+
+    6. DataTransparencyNote:
+    - Explain why this assessment matters
+    - Include value of PEM and decision usefulness
 
     --------------------------------------------------
-    FAILURE HANDLING
+    FIELD CONSTRAINTS (MANDATORY)
     --------------------------------------------------
 
-    If the response risks being truncated, exceeds token limits, or violates any JSON rule, return {{}} only.
+    SCORING:
+    - AIScore: integer (0-4)
+    - AIProgress: 0-100
+    - ConfidenceLevel: "High","Medium","Low"
+
+    EVIDENCE:
+    - StructuralEvidence: 30-100 words
+    - OperationalEvidence: 30-100 words
+    - OutcomeEvidence: 30-100 words
+    - PerceptionEvidence: 20-60 words
+
+    - EvidenceSummary: 550-700 words, single paragraph
+
+    CORE:
+    - TemporalScope: 10-40 words
+    - DistortionScreening: 30-100 words
+
+    STRESS:
+    - PoliticalShock: 20-80 words
+    - EconomicShock: 20-80 words
+    - NarrativeShock: 20-80 words
+    - OverallStressResilience: 40-120 words
+    - StressScoreAdjustment: 10-40 words
+
+    SYSTEM:
+    - CrossPillarPatterns: 120-180 words
+    - RelationalIntegrity: 40-100 words
+    - InstitutionalCapacity: 60-120 words
+    - EquityAssessment: 40-100 words
+    - ConflictRiskOutlook: 100-160 words
+
+    ADJUSTMENTS:
+    - InequalityAdjustment: 20-80 words
+    - OpacityRisk: 20-80 words
+    - NonCompensationNote: 20-80 words
+
+    STRATEGY:
+    - StrategicRecommendation: EXACTLY 3 items
+
+    DATA:
+    - DataTransparencyNote: 20-80 words
+    - PrimarySource: 5-60 words
+
+    --------------------------------------------------
+    EXECUTIVE LOGIC ALIGNMENT (CRITICAL)
+    --------------------------------------------------
+
+    - Strengths must align with EvidenceSummary
+    - Risks must align with Stress and Inequality fields
+    - StrategicRecommendation MUST address identified risks
+    - AIScore MUST match narrative tone
+    - No contradictions across fields
+
+    --------------------------------------------------
+    JSON OUTPUT FORMAT REQUIREMENTS (CRITICAL)
+    --------------------------------------------------
+
+    The response MUST be valid JSON.
+
+    STRICT RULES:
+
+    1. Use ONLY standard double quotes (") for keys and values
+    2. Do NOT use single quotes, smart quotes, or backticks
+    3. Escape special characters:
+    - \\n \\t \\" \\\\
+    4. No line breaks inside values (single-line strings only)
+    5. Use ASCII characters only
+    6. No trailing commas
+    7. No missing commas
+    8. No comments inside JSON
+    9. No extra text before or after JSON
+    10. JSON must start with {{ and end with }}
+
+    If ANY rule is at risk -> return {{}}
+
+    --------------------------------------------------
+    STRICT RULES
+    --------------------------------------------------
+
+    - Do NOT use bullet symbols (-, *, •)
+    - Do NOT leave any field empty
+    - Do NOT repeat content across fields
+    - Do NOT invent unsupported claims
+    - Prefer conservative scoring
+
+    --------------------------------------------------
+    FAIL SAFE
+    --------------------------------------------------
+
+    If output risks invalid JSON or truncation -> return {{}}
     """
-
 pem_ai_research_service = PEMResearchService()

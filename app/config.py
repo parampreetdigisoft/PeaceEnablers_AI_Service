@@ -32,7 +32,7 @@ class Settings:
     # ---------------------------
     # Database Configuration
     # ---------------------------
-    DB_SERVER: str = os.getenv("DB_SERVER", "DESKTOP-040OOU5\SQLEXPRESS")
+    DB_SERVER: str = os.getenv("DB_SERVER", "localhost\SQLEXPRESS01")
     DB_NAME: str = os.getenv("DB_NAME", "PeaceEnablerDB")
     DB_USE_WINDOWS_AUTH: bool = os.getenv("DB_USE_WINDOWS_AUTH", "True").lower() == "true"
     DB_USERNAME: str = os.getenv("DB_USERNAME", "")
