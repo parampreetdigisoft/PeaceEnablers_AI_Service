@@ -629,7 +629,7 @@ class PEMResearchService:
             {{{{
                 "ai_score": <0|1|2|3|4|"N/A"|"Unknown">,
                 "ai_progress": <0.00-100.00 or null if Unknown>,
-                "confidence_level": "<High|Moderate|Low>",
+                "confidence_level": "<High|Medium|Low>",
                 "evidence_summary": "<80-130 words for a general reader. What does the evidence show about this question? Plain language only — no internal protocol terminology.>",
                 "four_layer_evidence": {{{{
                     "structural": "<5-80 words for a general reader. What laws, mandates, or constitutional arrangements were found? 1-2 sentences.>",
@@ -644,7 +644,7 @@ class PEMResearchService:
                     "political_shock": "<5-80 words for a general reader. How would this condition hold under a leadership crisis, electoral dispute, or elite fracture?>",
                     "economic_shock": "<5-80 words for a general reader. How would this condition hold under fiscal crisis, currency instability, or youth unemployment surge?>",
                     "narrative_shock": "<5-80 words for a general reader. How would this condition hold under a disinformation campaign, identity mobilization, or grievance amplification?>",
-                    "overall_stress_resilience": "<High|Moderate|Low>"
+                    "overall_stress_resilience": "<High|Medium|Low>"
                 }}}},
                 "inequality_adjustment": "<80-130 words for a general reader. Was a score adjustment made for distributional imbalance? State which group is excluded and by how much the score was adjusted downward. State 'No adjustment needed' if equity is adequate.>",
                 "opacity_risk": "<80-130 words for a general reader. Describe any data gaps found: cause (conflict disruption, state suppression, institutional incapacity, missing infrastructure). Empty string if no opacity.>",
@@ -730,7 +730,7 @@ class PEMResearchService:
             {{{{
                 "ai_score": <0|1|2|3|4|"N/A"|"Unknown">,
                 "ai_progress": <0.00-100.00 or null if Unknown>,
-                "confidence_level": "<High|Moderate|Low>",
+                "confidence_level": "<High|Medium|Low>",
                 "evidence_summary": "<150-200 words for a general reader. What does the evidence show for this pillar? Include both strengths and concerns. Plain language only — no internal protocol terms.>",
                 "four_layer_evidence": {{{{
                     "structural": "<5-80 words for a general reader. Legal frameworks, institutional mandates, constitutional arrangements found for this pillar. 2-3 sentences.>",
@@ -755,7 +755,7 @@ class PEMResearchService:
                     "political_shock": "<5-100 words for a general reader. How would this pillar hold under a leadership crisis, electoral dispute, or elite fracture?>",
                     "economic_shock": "<5-100 words for a general reader. How would this pillar hold under fiscal contraction, currency instability, or youth unemployment surge?>",
                     "narrative_shock": "<5-100 words for a general reader. How would this pillar hold under a disinformation cascade, identity mobilization, or grievance amplification?>",
-                    "overall_stress_resilience": "<High|Moderate|Low>",
+                    "overall_stress_resilience": "<High|Medium|Low>",
                     "stress_score_adjustment": "<5-100 words for a general reader. Was the score adjusted downward for stress vulnerability? If yes, state original score and reason.>"
                 }}}},
                 "inequality_adjustment": "<50-100 words for a general reader. Were distributional imbalances found? Which groups are excluded (income, identity, geographic)? Was the score adjusted and by how much? State 'No adjustment needed' if equity is adequate.>",
@@ -841,7 +841,7 @@ class PEMResearchService:
         {{{{
             "ai_score": <0|1|2|3|4|"N/A"|"Unknown">,
             "ai_progress": <0.00-100.00 or null if Unknown>,
-            "confidence_level": "<High|Moderate|Low>",
+            "confidence_level": "<High|Medium|Low>",
             "evidence_summary": "<500-700 words, ASCII only. Follow the mandatory sections Executive Summary structure exactly as defined above. Write in continuous prose — no section headers, no bullet points, no numbered lists. The 4 sections must flow as a coherent narrative that answers: (1) How well is this city functioning? (2) What are the biggest risks in the next decade? (3) Where should policy or investment focus first? Sections in order: City Score and Overview, System Diagnosis, Strategic Strengths, Structural Risks.>",
             "four_layer_evidence": {{{{
                 "structural": "<20-150 words: Key structural evidence across pillars — laws, constitutions, institutional mandates.>",
@@ -855,7 +855,8 @@ class PEMResearchService:
                 "political_shock": "<20-150 words: How would this city's peace system hold under a leadership crisis or electoral dispute?>",
                 "economic_shock": "<20-150 words: How would this city hold under fiscal crisis or a major unemployment surge?>",
                 "narrative_shock": "<20-150 words: How would this city hold under large-scale disinformation or identity mobilization?>",
-                "overall_stress_resilience": "<High|Moderate|Low>",
+                "overall_stress_resilience": "<High|            "confidence_level": "<High|Medium|Low>",
+|Low>",
                 "stress_score_adjustment": "<20-150 words: Was the overall score adjusted for stress vulnerability? State original score and reason if adjusted.>"
             }}}},
             "inequality_adjustment": "<20-150 words: Distributional imbalances found across income, geography, or identity groups. How did this affect the overall score?>",
