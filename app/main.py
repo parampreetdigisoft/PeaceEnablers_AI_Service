@@ -60,7 +60,7 @@ app.add_middleware(
 )
 
 # Add API Key Authentication Middleware
-# app.add_middleware(APIKeyMiddleware)
+app.add_middleware(APIKeyMiddleware)
 
 
 # Custom OpenAPI schema with API Key security

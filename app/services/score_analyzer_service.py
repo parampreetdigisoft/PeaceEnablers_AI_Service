@@ -86,9 +86,9 @@ class ScoreAnalyzerService:
 
             for country in df.itertuples(index=False):
                 try:
-                       #await self.analyze_PillarQuestions(country)
+                       await self.analyze_PillarQuestions(country)
                        await self.analyze_countryPillar(country)
-                       #await self.analyze_country(country)
+                       await self.analyze_country(country)
                 except Exception as e:
                     logger.error(f"Failed to analyze country {country.CountryID} ({country.CountryName}): {e}")
                     continue
