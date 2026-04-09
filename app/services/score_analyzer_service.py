@@ -68,99 +68,99 @@ class ScoreAnalyzerService:
 
         return 0
 
-    def _get_city_data(self, city_id: Optional[int] = None):
-        """Fetch city data with optional filtering"""
-        where_clause = f"where IsDeleted=0 and CityID={city_id}" if city_id else "where IsDeleted=0"
+    def _get_country_data(self, country_id: Optional[int] = None):
+        """Fetch country data with optional filtering"""
+        where_clause = f"where IsDeleted=0 and CountryID={country_id}" if country_id else "where IsDeleted=0"
         return db_service.read_with_query(
-            f"Select CityID, CityName, State, Country from Cities {where_clause}"
+            f"Select CountryID, CountryName, Continent from Countries {where_clause}"
         )
 
-    async def analyze_all_cities_questions(self, city_id: Optional[int] = None) -> bool:
-        """Analyze City Questions data for all cities or specific city"""
+    async def analyze_all_countries_questions(self, country_id: Optional[int] = None) -> bool:
+        """Analyze Country Questions data for all countries or specific country"""
         try:
-            df = self._get_city_data(city_id)        
+            df = self._get_country_data(country_id)        
 
             if df.empty:
-                logger.error("No cities found for analysis analyze_all_cities_questions endpoint")
+                logger.error("No countries found for analysis analyze_all_countries_questions endpoint")
                 return False
 
-            for city in df.itertuples(index=False):
+            for country in df.itertuples(index=False):
                 try:
-                     await self.analyze_PillarQuestions(city)
-                    #  await self.analyze_cityPillar(city)
-                    #  await self.analyze_city(city)
+                       #await self.analyze_PillarQuestions(country)
+                       await self.analyze_countryPillar(country)
+                       #await self.analyze_country(country)
                 except Exception as e:
-                    logger.error(f"Failed to analyze city {city.CityID} ({city.CityName}): {e}")
+                    logger.error(f"Failed to analyze country {country.CountryID} ({country.CountryName}): {e}")
                     continue
 
             return True
             
         except Exception as e:
-            logger.error(f"Error in analyze_all_cities_questions: {e}")
+            logger.error(f"Error in analyze_all_countries_questions: {e}")
             raise
 
-    async def analyze_single_City(self, cityId: int) -> bool:
-        """Analyze City Questions data for a specific city"""
+    async def analyze_single_Country(self, countryId: int) -> bool:
+        """Analyze Country Questions data for a specific country"""
         try:
-            df = self._get_city_data(cityId)
+            df = self._get_country_data(countryId)
             if df.empty:
                 return False
 
-            for city in df.itertuples(index=False):
-                await self.analyze_city(city)
+            for country in df.itertuples(index=False):
+                await self.analyze_country(country)
 
             return True
             
         except Exception as e:
-            logger.error(f"Error in analyze_single_City (CityID: {cityId}): {e}")
+            logger.error(f"Error in analyze_single_Country (CountryID: {countryId}): {e}")
             raise
 
-    async def analyze_city_pillars(self, cityId: int) -> bool:
-        """Analyze City pillar data for a specific city"""
+    async def analyze_country_pillars(self, countryId: int) -> bool:
+        """Analyze Country pillar data for a specific country"""
         try:
-            df = self._get_city_data(cityId)
+            df = self._get_country_data(countryId)
             if df.empty:
                 return False
 
-            for city in df.itertuples(index=False):
-                await self.analyze_cityPillar(city)
+            for country in df.itertuples(index=False):
+                await self.analyze_countryPillar(country)
 
             return True
             
         except Exception as e:
-            logger.error(f"Error in analyze_city_pillars (CityID: {cityId}): {e}")
+            logger.error(f"Error in analyze_country_pillars (CountryID: {countryId}): {e}")
             raise
 
-    async def analyze_Single_Pillar(self, cityId: int, pillar_id: Optional[int] = None) -> bool:
-        """Analyze specific pillar for a city"""
+    async def analyze_Single_Pillar(self, countryId: int, pillar_id: Optional[int] = None) -> bool:
+        """Analyze specific pillar for a country"""
         try:
-            df = self._get_city_data(cityId)
+            df = self._get_country_data(countryId)
             if df.empty:
                 return False
 
-            for city in df.itertuples(index=False):
-                await self.analyze_cityPillar(city, pillar_id)
+            for country in df.itertuples(index=False):
+                await self.analyze_countryPillar(country, pillar_id)
 
             return True
             
         except Exception as e:
-            logger.error(f"Error in analyze_Single_Pillar (CityID: {cityId}, PillarID: {pillar_id}): {e}")
+            logger.error(f"Error in analyze_Single_Pillar (CountryID: {countryId}, PillarID: {pillar_id}): {e}")
             raise
 
-    async def analyze_questions_of_city_pillar(self, cityId: int, pillar_id: Optional[int] = None) -> bool:
-        """Analyze questions for city pillar"""
+    async def analyze_questions_of_country_pillar(self, countryId: int, pillar_id: Optional[int] = None) -> bool:
+        """Analyze questions for country pillar"""
         try:
-            df = self._get_city_data(cityId)
+            df = self._get_country_data(countryId)
             if df.empty:
                 return False
 
-            for city in df.itertuples(index=False):
-                await self.analyze_PillarQuestions(city, pillar_id)
+            for country in df.itertuples(index=False):
+                await self.analyze_PillarQuestions(country, pillar_id)
 
             return True
             
         except Exception as e:
-            logger.error(f"Error in analyze_questions_of_city_pillar (CityID: {cityId}): {e}")
+            logger.error(f"Error in analyze_questions_of_country_pillar (CountryID: {countryId}): {e}")
             raise
 
     def _build_question_record(self, row, ai_data, normalized_value: float) -> dict[str, Any]:
@@ -170,7 +170,7 @@ class ScoreAnalyzerService:
         evaluator_score = self.to_float_safe(normalized_value * 100)
 
         return {
-                    "CityID": row.CityID,
+                    "CountryID": row.CountryID,
                     "PillarID": row.PillarID,
                     "QuestionID": row.QuestionID,
                     "Year": self.to_int_safe(ai_data.get("Year")),
@@ -203,18 +203,18 @@ class ScoreAnalyzerService:
                     "SourcesConsulted": self.to_int_safe(ai_data.get("SourcesConsulted")),
     }
 
-    async def analyze_PillarQuestions(self, city: Any, pillar_id: Optional[int] = None) -> bool:
-        """Analyze Pillar Questions data for a city"""
+    async def analyze_PillarQuestions(self, country: Any, pillar_id: Optional[int] = None) -> bool:
+        """Analyze Pillar Questions data for a country"""
         try:
-            where = f"cityId = {city.CityID}"
+            where = f"countryId = {country.CountryID}"
             if pillar_id is not None:
-                where = f"cityId = {city.CityID} and PillarID={pillar_id}"
+                where = f"countryId = {country.CountryID} and PillarID={pillar_id}"
 
 
-            df = db_service.get_view_data("vw_AiCityPillarQuestionEvaluations", where)
+            df = db_service.get_view_data("vw_AiCountryPillarQuestionEvaluations", where)
             
             if not len(df):
-                db_logger_service.log_message("INFO", f"No pillar questions found for city {city.CityID} ({city.CityName})")
+                db_logger_service.log_message("INFO", f"No pillar questions found for country {country.CountryID} ({country.CountryName})")
                 return False
             
             pillarIds = [pillar_id] if pillar_id is not None else df["PillarID"].unique().tolist()
@@ -231,8 +231,8 @@ class ScoreAnalyzerService:
                             
                         try:
                             ai_data = await pem_ai_research_service.research_and_score_question(
-                                        city.CityName,
-                                        f"State :{city.State}, Country :{city.Country}",
+                                        country.CountryName,
+                                        f"Continent :{country.Continent}, Country :{country.CountryName}",
                                         row.PillarID,
                                         row.PillarName,
                                         row.QuestionText,
@@ -241,7 +241,7 @@ class ScoreAnalyzerService:
                                     )
 
                             if ai_data["success"]:
-                                ai_data["CityID"] = city.CityID
+                                ai_data["CountryID"] = country.CountryID
                                 questionList.append(self._build_question_record(row, ai_data, normalized_value))
                                 
                                 if len(questionList) == 1:
@@ -249,34 +249,34 @@ class ScoreAnalyzerService:
                                     questionList = []
                             else:
                                 db_logger_service.log_message("WARNING", 
-                                    f"AI analysis failed for QuestionID {row.QuestionID} in City {city.CityID}")
+                                    f"AI analysis failed for QuestionID {row.QuestionID} in Country {country.CountryID}")
                                 
                         except Exception as e:
-                            logger.error(f"Error processing question {row.QuestionID} for city {city.CityID}: {e}")
+                            logger.error(f"Error processing question {row.QuestionID} for country {country.CountryID}: {e}")
                             continue
                     
                     if questionList:
                         db_service.bulk_upsert_question_evaluations(questionList)
 
                 except Exception as e:
-                    logger.error(f"Error analyzing pillar {pillarId} for city {city.CityID}: {e}")
+                    logger.error(f"Error analyzing pillar {pillarId} for country {country.CountryID}: {e}")
                     continue
                     
             return True
             
         except Exception as e:
-            logger.error(f"Error in analyze_PillarQuestions for city {city.CityID}: {e}")
+            logger.error(f"Error in analyze_PillarQuestions for country{country.CountryID}: {e}")
             raise
 
-    async def analyze_cityPillar(self, city: Any, pillar_id: Optional[int] = None) -> bool:
-        """Analyze city pillar data and generate evaluations"""
+    async def analyze_countryPillar(self, country: Any, pillar_id: Optional[int] = None) -> bool:
+        """Analyze country pillar data and generate evaluations"""
 
         try:
-            where = f"cityId = {city.CityID} and PillarID = {pillar_id}" if pillar_id else f"cityId = {city.CityID}"
-            df = db_service.get_view_data("vw_AiCityPillarEvaluation", where)
+            where = f"countryId = {country.CountryID} and PillarID = {pillar_id}" if pillar_id else f"countryId = {country.CountryID}"
+            df = db_service.get_view_data("vw_AiCountryPillarEvaluation", where)
 
             if not len(df):
-                db_logger_service.log_message("INFO", f"No pillar evaluations found for city {city.CityID} ({city.CityName})")
+                db_logger_service.log_message("INFO", f"No pillar evaluations found for country {country.CountryID} ({country.CountryName})")
                 return False
 
             pillarList = []
@@ -285,11 +285,10 @@ class ScoreAnalyzerService:
             for row in df.itertuples(index=False):
                 try:
                     ai_data = await pem_ai_research_service.research_and_score_pillar(
-                        city.CityName,
-                        f"State :{city.State}, Country :{city.Country}",
+                        country.CountryName,
+                        f"Continent :{country.Continent}, Country :{country.CountryName}",
                         row.PillarID,
-                        row.PillarName,
-                        row.QuestionWithScores,
+                        row.PillarName,                        
                         row.EvaluatorScore,
                         row.AIScore,
                     )
@@ -301,7 +300,7 @@ class ScoreAnalyzerService:
                     ai_progress = self.to_float_safe(ai_data.get("AIProgress") or ai_data.get("ai_progress") or 0)
                     evaluator_score = self.to_float_safe(row.EvaluatorScore)
                     pillarList.append({
-                        "CityID": row.CityID,
+                        "CountryID": row.CountryID,
                         "PillarID": row.PillarID,
                         "Year": ai_data.get("Year"),
                         "AIScore": self.to_float_safe(ai_data.get("AIScore")),
@@ -334,14 +333,14 @@ class ScoreAnalyzerService:
                     # Source list (if still required)
                     for src in ai_data.get("Sources", []):
                         pillarSourceList.append({
-                            "CityID": row.CityID,
-                            "DataYear": self.to_int_safe(ai_data.get("Year")),
+                            "CountryID": row.CountryID,
+                            "DataYear": self.to_int_safe(src.get("data_year")),  # ✅ from source
                             "PillarID": row.PillarID,
-                            "SourceType": src.get("SourceType"),
-                            "SourceName": src.get("SourceName"),
-                            "SourceURL": src.get("SourceURL"),
-                            "DataExtract": src.get("SourceDataExtract"),
-                            "TrustLevel": self.to_int_safe(src.get("SourceHierarchyLevel"))
+                            "SourceType": src.get("source_type"),
+                            "SourceName": src.get("source_name"),
+                            "SourceURL": src.get("source_url"),
+                            "DataExtract": src.get("data_extract"),
+                            "TrustLevel": self.to_int_safe(src.get("source_trust_level"))
                         })
 
                     if len(pillarList) == 1:
@@ -350,7 +349,7 @@ class ScoreAnalyzerService:
                         pillarSourceList = []
 
                 except Exception as e:
-                    logger.error(f"Error processing pillar {row.PillarID} for city {city.CityID}: {e}")
+                    logger.error(f"Error processing pillar {row.PillarID} for country {country.CountryID}: {e}")
                     continue
 
             if pillarList:
@@ -359,42 +358,40 @@ class ScoreAnalyzerService:
             return True
 
         except Exception as e:
-            logger.error(f"Error in analyze_cityPillar for city {city.CityID}: {e}")
+            logger.error(f"Error in analyze_countryPillar for country {country.CountryID}: {e}")
             raise
         
         
-    async def analyze_city(self, city: Any) -> bool:
-        """Analyze overall city data and generate comprehensive evaluation"""
+    async def analyze_country(self, country: Any) -> bool:
+        """Analyze overall country data and generate comprehensive evaluation"""
 
         try:
-            df = db_service.get_view_data("vw_AiCityEvaluations", f"cityId = {city.CityID}")
+            df = db_service.get_view_data("vw_AiCountryEvaluations", f"countryId = {country.CountryID}")
 
             if not len(df):
                 db_logger_service.log_message(
                     "INFO",
-                    f"No city evaluations found for city {city.CityID} ({city.CityName})"
+                    f"No country evaluations found for country {country.CountryID} {country.CountryName})"
                 )
                 return False
 
-            cityList = []
+            countryList = []
 
             for row in df.itertuples(index=False):
                 try:
                     year = datetime.now().year
-                    ai_data = await pem_ai_research_service.research_and_score_city(
-                        city.CityName,
-                        f"State :{city.State}, Country :{city.Country}",
-                        row.EvaluatorScore,
-                        row.AIScore,
-                        row.PillarWithScores
+                    ai_data = await pem_ai_research_service.research_and_score_country(
+                        country.CountryName,
+                        f"Continent :{country.Continent}, Country :{country.CountryName}",
+                        row.EvaluatorScore                        
                     )
 
                     if not ai_data["success"]:
                         continue
                     ai_progress = self.to_float_safe(ai_data.get("AIProgress") or ai_data.get("ai_progress") or 0)
                     evaluator_score = self.to_float_safe(row.EvaluatorScore)
-                    cityList.append({
-                        "CityID": row.CityID,
+                    countryList.append({
+                        "CountryID": row.CountryID,
                         "Year": self.to_int_safe(ai_data.get("Year") or ai_data.get("year") or year),
                         "AIScore": self.to_float_safe(ai_data.get("AIScore") or ai_data.get("ai_score") or 0),
                         "AIProgress": self.to_float_safe(ai_data.get("AIProgress") or ai_data.get("ai_progress") or 0),
@@ -427,21 +424,21 @@ class ScoreAnalyzerService:
                         "VerifiedBy": None  # leave NULL unless manual verification
                     })
 
-                    if len(cityList) == 1:
-                        db_service.bulk_upsert_city_evaluations(cityList)
-                        cityList = []
+                    if len(countryList) == 1:
+                        db_service.bulk_upsert_country_evaluations(countryList)
+                        countryList = []
 
                 except Exception as e:
-                    logger.error(f"Error processing city evaluation for {city.CityID}: {e}")
+                    logger.error(f"Error processing country evaluation for {country.CountryID}: {e}")
                     continue
 
-            if cityList:
-                db_service.bulk_upsert_city_evaluations(cityList)
+            if countryList:
+                db_service.bulk_upsert_country_evaluations(countryList)
 
             return True
 
         except Exception as e:
-            logger.error(f"Error in analyze_city for city {city.CityID}: {e}")
+            logger.error(f"Error in analyze_country for country {country.CountryID}: {e}")
             raise
 
 

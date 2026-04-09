@@ -6,6 +6,7 @@ import re
 import json
 import asyncio
 import logging
+from langchain_core.messages import SystemMessage
 from datetime import datetime
 from typing import Dict, Any, Optional
 from langchain_core.prompts import ChatPromptTemplate
@@ -50,8 +51,8 @@ class PEMResearchService:
 
     async def research_and_score_question(
     self,
-    city_name: str,
-    city_address: str,
+    country_name: str,
+    continent: str,
     pillarID: int,
     pillar_name: str,
     question_text: str,
@@ -66,18 +67,20 @@ class PEMResearchService:
                 year = datetime.now().year
                             
             pillar_context = PeaceEnablerPillarPrompts.get_pillar_context(pillarID)
+            system_prompt = self._question_system_prompt(
+            pillar_context=pillar_context)
                             
             prompt = ChatPromptTemplate.from_messages([
-                ("system", self._get_pem_question_system_prompt()),
+                SystemMessage(content=system_prompt),  # ✅ NO templating
                 ("user", """
-                City: {city_name}
-                Address: {city_address}
-                Pillar: {pillar_name}
-                Question: {question_text}
-                Evaluator Score:{evaluator_score}
-                Year: {year}
-                Conduct research strictly under the Peace Enablers Matrix governance protocol.
-                Return ONLY valid JSON.
+                    Country: {country_name}
+                    Continent: {continent}
+                    Pillar: {pillar_name}
+                    Question: {question_text}
+                    Evaluator Score: {evaluator_score}
+                    Year: {year}
+
+                    Return ONLY valid JSON.
                 """)
             ])
 
@@ -86,61 +89,74 @@ class PEMResearchService:
                     chain = prompt | self.llm | StrOutputParser()
 
                     result = await chain.ainvoke({
-                        "city_name": city_name,
-                        "city_address": city_address,
+                        "country_name": country_name,
+                        "continent": continent,
                         "pillar_name": pillar_name,
                         "question_text": question_text,
                         "evaluator_score":evaluator_score,
                         "pillar_context": pillar_context,
                         "year": year
                     })
-
+                    if not result or result.strip() == "{}":
+                            continue  # retry
                     cleaned = self._clean_json_response(result)
                     analysis = json.loads(cleaned)
+                    four_layer = analysis.get("four_layer_evidence", {})
+                    stress = analysis.get("stress_simulation", {})
 
                     return {
-                            "success": True,
-                            "CityID": None,  # assign externally
-                            "PillarID": pillarID,
-                            "Year": year,
+                        "success": True,
+                        "CountryID": None,
+                        "PillarID": pillarID,
+                        "Year": year,
 
-                            "AIScore": analysis.get("ai_score"),
-                            "ConfidenceLevel": analysis.get("confidence_level"),
+                        "AIScore": analysis.get("ai_score"),
+                        "AIProgress": analysis.get("ai_progress"),
+                        "ConfidenceLevel": analysis.get("confidence_level"),
 
-                            "StructuralEvidence": analysis.get("structural_evidence"),
-                            "OperationalEvidence": analysis.get("operational_evidence"),
-                            "OutcomeEvidence": analysis.get("outcome_evidence"),
-                            "PerceptionEvidence": analysis.get("perception_evidence"),
-                            "EvidenceSummary": analysis.get("evidence_summary"),
+                        # ✅ FIXED (nested extraction)
+                        "StructuralEvidence": four_layer.get("structural"),
+                        "OperationalEvidence": four_layer.get("operational"),
+                        "OutcomeEvidence": four_layer.get("outcome"),
+                        "PerceptionEvidence": four_layer.get("perception"),
 
-                            "TemporalScope": analysis.get("temporal_scope"),
-                            "DistortionScreening": analysis.get("distortion_screening"),
-                            "RelationalDependencies": analysis.get("relational_dependencies"),
+                        "EvidenceSummary": analysis.get("evidence_summary"),
 
-                            "StressPoliticalShock": analysis.get("stress_political_shock"),
-                            "StressEconomicShock": analysis.get("stress_economic_shock"),
-                            "StressNarrativeShock": analysis.get("stress_narrative_shock"),
-                            "StressOverallResilienceShock": analysis.get("stress_overall_resilience_shock"),
+                        "TemporalScope": analysis.get("temporal_scope"),
+                        "DistortionScreening": analysis.get("distortion_screening"),
+                        "RelationalDependencies": analysis.get("relational_dependencies"),
 
-                            "InequalityAdjustment": analysis.get("inequality_adjustment"),
-                            "OpacityRisk": analysis.get("opacity_risk"),
-                            "NonCompensationNote": analysis.get("non_compensation_note"),
+                        # ✅ FIXED (nested stress fields)
+                        "StressPoliticalShock": stress.get("political_shock"),
+                        "StressEconomicShock": stress.get("economic_shock"),
+                        "StressNarrativeShock": stress.get("narrative_shock"),
+                        "StressOverallResilienceShock": stress.get("overall_stress_resilience"),
 
-                            "RedFlag": analysis.get("red_flag"),
+                        "InequalityAdjustment": analysis.get("inequality_adjustment"),
+                        "OpacityRisk": analysis.get("opacity_risk"),
 
-                            "SourceName": analysis.get("source_name"),
-                            "SourceType": analysis.get("source_type"),
-                            "SourceURL": analysis.get("source_url"),
-                            "SourceDataYear": analysis.get("source_data_year"),
-                            "SourceHierarchyLevel": analysis.get("source_hierarchy_level"),
-                            "SourceDataExtract": analysis.get("source_data_extract"),
+                        # ❌ not present in response → keep None-safe
+                        "NonCompensationNote": analysis.get("non_compensation_note"),
 
-                            "SourcesConsulted": analysis.get("sources_consulted"),
+                        "RedFlag": analysis.get("red_flag"),
 
-                            "ConfidenceExplanation": analysis.get("confidence_explanation")
+                        # ✅ source fields
+                        "SourceName": analysis.get("source_name"),
+                        "SourceType": analysis.get("source_type"),
+                        "SourceURL": analysis.get("source_url"),
+                        "SourceDataYear": analysis.get("source_data_year"),
+                        "SourceHierarchyLevel": analysis.get("source_trust_level"),  # FIXED KEY
+                        "SourceDataExtract": analysis.get("source_data_extract"),
+
+                        # ❌ not present → optional
+                        "SourcesConsulted": analysis.get("sources_consulted"),
+
+                        # ❌ not present → optional
+                        "ConfidenceExplanation": analysis.get("confidence_explanation")
                     }
 
-                except Exception:
+                except Exception as ex:
+                    logger.error(f"Attempt {attempt+1} failed in research_and_score_pillar: {str(ex)}")
                     if attempt < self.max_retries - 1:
                         await asyncio.sleep(self.retry_delay)
                         continue
@@ -151,11 +167,10 @@ class PEMResearchService:
     
     async def research_and_score_pillar(
     self,
-    city_name: str,
-    city_address: str,
+    country_name: str,
+    continent: str,
     pillarId: int,
-    pillar_name: str,
-    question_text: str,
+    pillar_name: str,    
     evaluator_score: Optional[float] = None,
     existing_ai_score: Optional[float] = None,
     year: int = None
@@ -168,71 +183,84 @@ class PEMResearchService:
                 year = datetime.now().year
 
             pillar_context = PeaceEnablerPillarPrompts.get_pillar_context(pillarId)
-
-                
+            system_prompt = self._pillar_system_prompt(
+            pillar_context=pillar_context)
             prompt = ChatPromptTemplate.from_messages([
-                ("system", self._get_pem_pillar_system_prompt()),
+                SystemMessage(content=system_prompt),  # ✅ NO templating
                 ("user", """
-            City: {city_name}
-            Address: {city_address}
-            Pillar: {pillar_name}
-            Question: {question_text}
-            Year: {year}
-            Evaluator Score: {evaluator_score}
-            Existing AI Score: {existing_ai_score}
-            Evaluate this pillar question using the Peace Enablers Matrix methodology.
-
-            Return ONLY valid JSON.
-            """)
-            ])
+                    Country: {country_name}
+                    Continent: {continent}
+                    Pillar: {pillar_name}                                        
+                    Year: {year}
+                    Return ONLY valid JSON.
+                """)
+            ])              
+           
 
             for attempt in range(self.max_retries):
                 try:
                     chain = prompt | self.llm | StrOutputParser()
 
                     result = await chain.ainvoke({
-                        "city_name": city_name,
-                        "city_address": city_address,
-                        "pillar_name": pillar_name,
-                        "question_text": question_text,
+                        "country_name": country_name,
+                        "continent": continent,
+                        "pillar_name": pillar_name,                        
                         "year": year,
                         "evaluator_score": evaluator_score,
                         "existing_ai_score": existing_ai_score,
                         "pillar_context":pillar_context
-                    })                    
+                    })    
+                    if not result or result.strip() == "{}":
+                            continue  # retry                
                     cleaned = self._clean_json_response(result)
                     analysis = json.loads(cleaned)
-
+                    
                     return {
-                        "success": True,
-                        "CityID": None,
-                        "PillarID": pillarId,
-                        "Year": year,
-                        "AIScore": analysis.get("AIScore"),
-                        "AIProgress": analysis.get("AIProgress"),
-                        "ConfidenceLevel": analysis.get("ConfidenceLevel"),
-                        "StructuralEvidence": analysis.get("StructuralEvidence"),
-                        "EvidenceSummary": analysis.get("EvidenceSummary"),
-                        "OperationalEvidence": analysis.get("OperationalEvidence"),
-                        "OutcomeEvidence": analysis.get("OutcomeEvidence"),
-                        "PerceptionEvidence": analysis.get("PerceptionEvidence"),
-                        "TemporalScope": analysis.get("TemporalScope"),
-                        "DistortionScreening": analysis.get("DistortionScreening"),
-                        "RelationalIntegrity": analysis.get("RelationalIntegrity"),
-                        "StressPoliticalShock": analysis.get("StressPoliticalShock"),
-                        "StressEconomicShock": analysis.get("StressEconomicShock"),
-                        "StressNarrativeShock": analysis.get("StressNarrativeShock"),
-                        "StressOverallResilience": analysis.get("StressOverallResilience"),
-                        "StressScoreAdjustment": analysis.get("StressScoreAdjustment"),
-                        "InequalityAdjustment": analysis.get("InequalityAdjustment"),
-                        "OpacityRisk": analysis.get("OpacityRisk"),
-                        "NonCompensationNote": analysis.get("NonCompensationNote"),
-                        "GeographicEquityNote": analysis.get("GeographicEquityNote"),
-                        "InstitutionalAssessment": analysis.get("InstitutionalAssessment"),
-                        "DataGapAnalysis": analysis.get("DataGapAnalysis"),
-                        "RedFlag": analysis.get("RedFlag"),
-                        "Sources": analysis.get("Sources", [])
-                    }
+                            "success": True,
+                            "CountryID": None,
+                            "PillarID": pillarId,
+                            "Year": year,
+
+                            # ✅ top-level
+                            "AIScore": analysis.get("ai_score"),
+                            "AIProgress": analysis.get("ai_progress"),
+                            "ConfidenceLevel": analysis.get("confidence_level"),
+
+                            # ✅ summary
+                            "EvidenceSummary": analysis.get("evidence_summary"),
+
+                            # ✅ four layer evidence (nested)
+                            "StructuralEvidence": analysis.get("four_layer_evidence", {}).get("structural"),
+                            "OperationalEvidence": analysis.get("four_layer_evidence", {}).get("operational"),
+                            "OutcomeEvidence": analysis.get("four_layer_evidence", {}).get("outcome"),
+                            "PerceptionEvidence": analysis.get("four_layer_evidence", {}).get("perception"),
+
+                            # ✅ other fields
+                            "TemporalScope": analysis.get("temporal_scope"),
+                            "DistortionScreening": analysis.get("distortion_screening"),
+                            "RelationalIntegrity": analysis.get("relational_integrity"),
+
+                            # ✅ stress simulation (nested)
+                            "StressPoliticalShock": analysis.get("stress_simulation", {}).get("political_shock"),
+                            "StressEconomicShock": analysis.get("stress_simulation", {}).get("economic_shock"),
+                            "StressNarrativeShock": analysis.get("stress_simulation", {}).get("narrative_shock"),
+                            "StressOverallResilience": analysis.get("stress_simulation", {}).get("overall_stress_resilience"),
+                            "StressScoreAdjustment": analysis.get("stress_simulation", {}).get("stress_score_adjustment"),
+
+                            # ✅ adjustments
+                            "InequalityAdjustment": analysis.get("inequality_adjustment"),
+                            "OpacityRisk": analysis.get("opacity_risk"),
+                            "NonCompensationNote": analysis.get("non_compensation_note"),
+
+                            # ✅ additional fields (safe fallback if missing)
+                            "GeographicEquityNote": analysis.get("geographic_equity_note"),
+                            "InstitutionalAssessment": analysis.get("institutional_assessment"),
+                            "DataGapAnalysis": analysis.get("data_gap_analysis"),
+                            "RedFlag": analysis.get("red_flag"),
+
+                            # ✅ sources array
+                            "Sources": analysis.get("sources", [])
+                        }
 
                 except Exception as ex:
                     logger.error(f"Attempt {attempt+1} failed in research_and_score_pillar: {str(ex)}")
@@ -244,13 +272,11 @@ class PEMResearchService:
         except Exception as e:
          return {"success": False, "error": str(e)}
     
-    async def research_and_score_city(
+    async def research_and_score_country(
     self,
-    city_name: str,
-    city_address: str,
-    evaluator_score: Optional[float] = None,
-    existing_ai_score: Optional[float] = None,
-    pillar_with_scores: Optional[str] = None,
+    country_name: str,
+    continent: str,
+    evaluator_score: Optional[float] = None,    
     year: int = None
 ) -> Dict[str, Any]:
 
@@ -260,25 +286,23 @@ class PEMResearchService:
             if year is None:
                 year = datetime.now().year
 
+            # ✅ Pillars
             pillarNames = PeaceEnablerPillarPrompts.get_all_pillar_names()
+            pillar_list_str = "\n".join(
+                f"{k}. {v}" for k, v in pillarNames.items()
+            )
 
+            # ✅ System Prompt
+            system_prompt = self._get_pem_country_system_prompt(
+                pillar_list_str=pillar_list_str
+            )          
             prompt = ChatPromptTemplate.from_messages([
-                ("system", self._get_pem_city_system_prompt()),
+                SystemMessage(content=system_prompt),  # ✅ NO templating here
                 ("user", """
-                    City: {city_name}
-                    Address: {city_address}
+                    Country: {country_name}
+                    Continent: {continent}
                     Year: {year}
-
-                    Evaluator Score: {evaluator_score}
-                    Existing AI Score: {existing_ai_score}
-
-                    Pillar Scores:
-                    {pillar_with_scores}
-
-                    Synthesize all 23 pillars using the Peace Enablers Matrix.
-
-                    Return ONLY valid JSON.
-                    """)
+                """)
             ])
 
             for attempt in range(self.max_retries):
@@ -286,53 +310,61 @@ class PEMResearchService:
                     chain = prompt | self.llm | StrOutputParser()
 
                     result = await chain.ainvoke({
-                        "city_name": city_name,
-                        "city_address": city_address,
+                        "country_name": country_name,
+                        "continent": continent,
                         "year": year,
-                        "evaluator_score": evaluator_score,
-                        "existing_ai_score": existing_ai_score,
-                        "pillar_with_scores": pillar_with_scores
+                        "pillar_list_str": pillar_list_str,
+                        "evaluator_note": evaluator_score or ""
                     })
-
+                    if not result or result.strip() == "{}":
+                            continue  # retry
                     cleaned = self._clean_json_response(result)
                     analysis = json.loads(cleaned)
+                    four_layer = analysis.get("four_layer_evidence", {})
+                    stress = analysis.get("stress_simulation", {})
 
                     return {
-                        "success": True,
-                        "CityID": None,
-                        "Year": year,
-                        "AIScore": analysis.get("AIScore"),
-                        "AIProgress": analysis.get("AIProgress"),
-                        "EvaluatorScore": analysis.get("EvaluatorScore"),
-                        "Discrepancy": analysis.get("Discrepancy"),
-                        "ConfidenceLevel": analysis.get("ConfidenceLevel"),
-                        "EvidenceSummary": analysis.get("EvidenceSummary"),
-                        "StructuralEvidence": analysis.get("StructuralEvidence"),
-                        "OperationalEvidence": analysis.get("OperationalEvidence"),
-                        "OutcomeEvidence": analysis.get("OutcomeEvidence"),
-                        "PerceptionEvidence": analysis.get("PerceptionEvidence"),
-                        "TemporalScope": analysis.get("TemporalScope"),
-                        "DistortionScreening": analysis.get("DistortionScreening"),
-                        "PoliticalShock": analysis.get("PoliticalShock"),
-                        "EconomicShock": analysis.get("EconomicShock"),
-                        "NarrativeShock": analysis.get("NarrativeShock"),
-                        "OverallStressResilience": analysis.get("OverallStressResilience"),
-                        "StressScoreAdjustment": analysis.get("StressScoreAdjustment"),
-                        "InequalityAdjustment": analysis.get("InequalityAdjustment"),
-                        "OpacityRisk": analysis.get("OpacityRisk"),
-                        "NonCompensationNote": analysis.get("NonCompensationNote"),
-                        "CrossPillarPatterns": analysis.get("CrossPillarPatterns"),
-                        "RelationalIntegrity": analysis.get("RelationalIntegrity"),
-                        "InstitutionalCapacity": analysis.get("InstitutionalCapacity"),
-                        "EquityAssessment": analysis.get("EquityAssessment"),
-                        "ConflictRiskOutlook": analysis.get("ConflictRiskOutlook"),
-                        "StrategicRecommendation": analysis.get("StrategicRecommendation"),
-                        "DataTransparencyNote": analysis.get("DataTransparencyNote"),
-                        "PrimarySource": analysis.get("PrimarySource")
-                    }
+                            "success": True,
+                            "CountryID": None,
+                            "Year": year,
+
+                            # ✅ Correct key mapping
+                            "AIScore": analysis.get("ai_score"),
+                            "AIProgress": analysis.get("ai_progress"),
+                            "ConfidenceLevel": analysis.get("confidence_level"),
+                            "EvidenceSummary": analysis.get("evidence_summary"),
+
+                            # ✅ Nested extraction
+                            "StructuralEvidence": four_layer.get("structural"),
+                            "OperationalEvidence": four_layer.get("operational"),
+                            "OutcomeEvidence": four_layer.get("outcome"),
+                            "PerceptionEvidence": four_layer.get("perception"),
+
+                            "TemporalScope": analysis.get("temporal_scope"),
+                            "DistortionScreening": analysis.get("distortion_screening"),
+
+                            # ✅ Stress block
+                            "PoliticalShock": stress.get("political_shock"),
+                            "EconomicShock": stress.get("economic_shock"),
+                            "NarrativeShock": stress.get("narrative_shock"),
+                            "OverallStressResilience": stress.get("overall_stress_resilience"),
+                            "StressScoreAdjustment": stress.get("stress_score_adjustment"),
+
+                            "InequalityAdjustment": analysis.get("inequality_adjustment"),
+                            "OpacityRisk": analysis.get("opacity_risk"),
+                            "NonCompensationNote": analysis.get("non_compensation_note"),
+                            "CrossPillarPatterns": analysis.get("cross_pillar_patterns"),
+                            "RelationalIntegrity": analysis.get("relational_integrity"),
+                            "InstitutionalCapacity": analysis.get("institutional_capacity"),
+                            "EquityAssessment": analysis.get("equity_assessment"),
+                            "ConflictRiskOutlook": analysis.get("conflict_risk_outlook"),
+                            "StrategicRecommendation": analysis.get("strategic_recommendation"),
+                            "DataTransparencyNote": analysis.get("data_transparency_note"),
+                            "PrimarySource": analysis.get("primary_source")
+                        }
 
                 except Exception as ex:
-                    logger.error(f"Attempt {attempt+1} failed in research_and_score_city: {str(ex)}")
+                    logger.error(f"Attempt {attempt+1} failed in research_and_score_country: {str(ex)}")
                     if attempt < self.max_retries - 1:
                         await asyncio.sleep(self.retry_delay)
                         continue
@@ -413,8 +445,8 @@ class PEMResearchService:
         return data
 
 
-    def _validate_city_response(self, data: Dict) -> Dict:
-        """Validate AICityScores response"""
+    def _validate_country_response(self, data: Dict) -> Dict:
+        """Validate AICountryScores response"""
         required_fields = [
             "ai_score",
             "confidence_level",
@@ -593,17 +625,17 @@ class PEMResearchService:
     
     # ==================== PROMPT TEMPLATES ====================
    
-    def _question_system_prompt(self) -> str:
+    def _question_system_prompt(self, pillar_context: str) -> str:
         return f"""
             You are a specialist analyst for the Peace Enabler Index (PEM).
-            You score individual questions about peace conditions in cities worldwide.
+            You score individual questions about peace conditions in countries worldwide.
             Keep each section concise.
             Do not exceed requested word limits.
 
             {PeaceEnablerPillarPrompts.GOVERNANCE_PROTOCOL}
 
             PILLAR CONTEXT FOR THIS QUESTION:
-            {{pillar_context}}
+            {pillar_context}
 
             YOUR MANDATORY PROCESS (execute in sequence — no shortcuts):
             Step 1: Establish temporal scope — what is the evidence range (1950-present)?
@@ -630,7 +662,7 @@ class PEMResearchService:
                 "ai_score": <0|1|2|3|4|"N/A"|"Unknown">,
                 "ai_progress": <0.00-100.00 or null if Unknown>,
                 "confidence_level": "<High|Medium|Low>",
-                "evidence_summary": "<80-130 words for a general reader. What does the evidence show about this question? Plain language only — no internal protocol terminology.>",
+                "evidence_summary": "<150-200 words for a general reader. What does the evidence show for this pillar? Include both strengths and concerns. Plain language only — no internal protocol terms.>",
                 "four_layer_evidence": {{{{
                     "structural": "<5-80 words for a general reader. What laws, mandates, or constitutional arrangements were found? 1-2 sentences.>",
                     "operational": "<5-80 words for a general reader. What budget, staffing, or enforcement data was found? 1-2 sentences.>",
@@ -646,6 +678,7 @@ class PEMResearchService:
                     "narrative_shock": "<5-80 words for a general reader. How would this condition hold under a disinformation campaign, identity mobilization, or grievance amplification?>",
                     "overall_stress_resilience": "<High|Medium|Low>"
                 }}}},
+                "non_compensation_note": "<50-100 words for a general reader. Does this pillar's score account for the Non-Compensation Rule? Example: if security is strong but justice is absent, security cannot substitute. State 'Not applicable' if no such dependency exists.>",
                 "inequality_adjustment": "<80-130 words for a general reader. Was a score adjustment made for distributional imbalance? State which group is excluded and by how much the score was adjusted downward. State 'No adjustment needed' if equity is adequate.>",
                 "opacity_risk": "<80-130 words for a general reader. Describe any data gaps found: cause (conflict disruption, state suppression, institutional incapacity, missing infrastructure). Empty string if no opacity.>",
                 "red_flag": "<80-130 words for a general reader. Describe any serious concern: cosmetic reform, single-source claims, elite-only data, or suppressed reporting. Empty string if none.>",
@@ -657,6 +690,7 @@ class PEMResearchService:
                 "source_trust_level": <1-7 matching evidence hierarchy above>,
                 "source_data_extract": "<The specific data point or finding from this source, 1-2 sentences.>"
             }}}}
+
             --------------------------------------------------
             OUTPUT STYLE (MANDATORY)
             --------------------------------------------------
@@ -678,12 +712,13 @@ class PEMResearchService:
             2. Do NOT use single quotes, smart quotes, or backticks
             3. Escape special characters: \\n \\t \\" \\\\
             4. No line breaks inside values
-            5. Use ASCII characters only
+            5. Use ASCII characters only (no Unicode characters such as \u2019, smart apostrophes, or typographic symbols)
             6. No trailing commas
             7. No missing commas
-            8. No comments
-            9. Output ONLY JSON
-            10. Must start with {{ and end with }}
+            8. Use regular hyphens (-) not em-dashes (—) or en-dashes (–)
+            9. No comments
+            10. Output ONLY JSON
+            11. Must start with {{ and end with }}
 
             --------------------------------------------------
             FAIL SAFE
@@ -692,28 +727,25 @@ class PEMResearchService:
             If output risks invalid JSON or truncation -> return {{{{}}}}
         """
 
-    def _pillar_system_prompt(self) -> str:
+    def _pillar_system_prompt(self, pillar_context: str) -> str:
         return f"""
             You are a senior analyst for the Peace Enablers Mapper (PEM).
-            You conduct deep, multi-source assessments of a single peace pillar for a city.
+            You conduct deep, multi-source assessments of a single peace pillar for a country.
             Keep each section concise.
             Do not exceed requested word limits.
 
             {PeaceEnablerPillarPrompts.GOVERNANCE_PROTOCOL}
 
             PILLAR CONTEXT:
-            {{pillar_context}}
-
-            HUMAN REFERENCE:
-            {{evaluator_note}}
+            {pillar_context}            
 
             YOUR MANDATORY PROCESS (execute in full — no shortcuts):
             Step 1: Establish temporal scope — what is the evidence range? Note pre-1950 roots
                     and their current institutional expression (if relevant).
             Step 2: Conduct broad web research across all evidence levels for this pillar.
             Step 3: Collect evidence across all four layers for this specific pillar.
-            Step 4: Apply evidence hierarchy — require minimum two independent sources.
-            Step 5: Test geographic equity — does the data reflect the whole city, or only
+            Step 4: Apply evidence hierarchy — require minimum 2 and max 8 independent sources.
+            Step 5: Test geographic equity — does the data reflect the whole country, or only
                     central/affluent zones? Identify core-periphery performance gaps.
             Step 6: Screen for distortion — election-cycle data, restricted media, curated statistics,
                     abrupt statistical improvements without verifiable explanation.
@@ -761,11 +793,12 @@ class PEMResearchService:
                 "inequality_adjustment": "<50-100 words for a general reader. Were distributional imbalances found? Which groups are excluded (income, identity, geographic)? Was the score adjusted and by how much? State 'No adjustment needed' if equity is adequate.>",
                 "opacity_risk": "<50-100 words for a general reader. Data gaps identified. Cause: conflict disruption, state suppression, institutional incapacity, or missing infrastructure. Significance for the assessment. Empty string if none.>",
                 "non_compensation_note": "<50-100 words for a general reader. Does this pillar's score account for the Non-Compensation Rule? Example: if security is strong but justice is absent, security cannot substitute. State 'Not applicable' if no such dependency exists.>",
-                "geographic_equity_note": "<50-100 words for a general reader. Are outcomes equitable across the city? Compare core vs periphery, income groups, identity communities. 2-3 sentences.>",
+                "geographic_equity_note": "<50-100 words for a general reader. Are outcomes equitable across the country? Compare core vs periphery, income groups, identity communities. 2-3 sentences.>",
                 "institutional_assessment": "<50-100 words for a general reader. Quality of governance and institutional capacity specifically for this pillar. 2-3 sentences.>",
                 "data_gap_analysis": "<50-100 words for a general reader. What important information was unavailable? What does its absence signal about governance or transparency? 1-2 sentences.>",
                 "red_flag": "<50-100 words for a general reader. Systemic concerns found: cosmetic reform presented as structural, single-source claims, elite capture, data suppression. Empty string if none.>"
             }}}}
+
             --------------------------------------------------
             OUTPUT STYLE (MANDATORY)
             --------------------------------------------------
@@ -787,12 +820,13 @@ class PEMResearchService:
             2. Do NOT use single quotes, smart quotes, or backticks
             3. Escape special characters: \\n \\t \\" \\\\
             4. No line breaks inside values
-            5. Use ASCII characters only
+            5. Use ASCII characters only (no Unicode characters such as \u2019, smart apostrophes, or typographic symbols)
             6. No trailing commas
             7. No missing commas
-            8. No comments
-            9. Output ONLY JSON
-            10. Must start with {{ and end with }}
+            8. Use regular hyphens (-) not em-dashes (—) or en-dashes (–)
+            9. No comments
+            10. Output ONLY JSON
+            11. Must start with {{ and end with }}
 
             --------------------------------------------------
             FAIL SAFE
@@ -801,10 +835,10 @@ class PEMResearchService:
             If output risks invalid JSON or truncation -> return {{{{}}}}
             """
 
-    def _get_pem_city_system_prompt(self) -> str:
+    def _get_pem_country_system_prompt( self, pillar_list_str: str, evaluator_note: str = "") -> str:
         return f"""
         You are a lead analyst for the Peace Enablers Mapper (PEM).
-        You conduct comprehensive, cross-pillar city-level peace assessments.
+        You conduct comprehensive, cross-pillar country-level peace assessments.
         Keep each section concise.
         Do not exceed requested word limits.
         Output for a general reader.
@@ -812,65 +846,103 @@ class PEMResearchService:
         {PeaceEnablerPillarPrompts.GOVERNANCE_PROTOCOL}
 
         ALL 23 PILLARS:
-        {{pillar_list_str}}
+        {pillar_list_str}
 
         HUMAN REFERENCE:
-        {{evaluator_note}}
+        {evaluator_note}
 
         YOUR MANDATORY PROCESS (execute in full):
-        Step 1: Search broadly across all 23 pillar domains for this city.
-        Step 2: Establish the temporal scope (1950-present). Note key historical turning points
-                that demonstrably shape current peace conditions.
-        Step 3: Collect four-layer evidence at city scale.
-        Step 4: Screen for city-level distortion — curated official statistics, restricted media,
-                politically timed data releases.
-        Step 5: Identify cross-pillar patterns — where do weaknesses reinforce each other?
-                Where are strengths isolated rather than systemic?
-        Step 6: Apply relational integrity test across the full 23-pillar system.
-        Step 7: Run city-scale stress simulation (political, economic, narrative shocks).
-                Adjust overall score if the city is unlikely to hold under stress.
-        Step 8: Test geographic equity — are peace conditions consistent across income groups,
-                identity communities, and geographic zones within the city?
-        Step 9: Apply inequality adjustment to the overall score if needed.
-        Step 10: Apply non-compensation rule — no pillar strength offsets systemic collapse elsewhere.
-        Step 11: Apply data silence protocol for any domains with unreliable or missing data.
-        Step 12: Assign overall score using the seven-level grid.
-        Step 13: Assess trajectory — is peace improving, stable, or deteriorating?
+        Step 1: Search broadly across all 23 pillar domains for this country.
+        Step 2: Establish the temporal scope (1950-present).
+        Step 3: Collect four-layer evidence at country scale.
+        Step 4: Screen for country-level distortion.
+        Step 5: Identify cross-pillar patterns.
+        Step 6: Apply relational integrity test.
+        Step 7: Run country-scale stress simulation.
+        Step 8: Test geographic equity.
+        Step 9: Apply inequality adjustment if needed.
+        Step 10: Apply non-compensation rule.
+        Step 11: Apply data silence protocol.
+        Step 12: Assign overall score.
+        Step 13: Assess trajectory.
 
-        OUTPUT: Return ONLY this exact JSON object (no markdown, no extra text):
-        {{{{
+        OUTPUT: Return ONLY valid JSON (no markdown, no extra text):
+
+        {{
             "ai_score": <0|1|2|3|4|"N/A"|"Unknown">,
             "ai_progress": <0.00-100.00 or null if Unknown>,
             "confidence_level": "<High|Medium|Low>",
-            "evidence_summary": "<500-700 words, ASCII only. Follow the mandatory sections Executive Summary structure exactly as defined above. Write in continuous prose — no section headers, no bullet points, no numbered lists. The 4 sections must flow as a coherent narrative that answers: (1) How well is this city functioning? (2) What are the biggest risks in the next decade? (3) Where should policy or investment focus first? Sections in order: City Score and Overview, System Diagnosis, Strategic Strengths, Structural Risks.>",
-            "four_layer_evidence": {{{{
+            "evidence_summary": "<500-700 words, ASCII only. Follow the mandatory sections Executive Summary structure exactly as defined above. Write in continuous prose — no section headers, no bullet points, no numbered lists. The 4 sections must flow as a coherent narrative that answers: (1) How well is this country functioning? (2) What are the biggest risks in the next decade? (3) Where should policy or investment focus first? Sections in order: Country Score and Overview, System Diagnosis, Strategic Strengths, Structural Risks.>",
+            "four_layer_evidence": {{
                 "structural": "<20-150 words: Key structural evidence across pillars — laws, constitutions, institutional mandates.>",
-                "operational": "<20-150 words: Key operational evidence — budgets, enforcement patterns, service delivery at city scale.>",
+                "operational": "<20-150 words: Key operational evidence — budgets, enforcement patterns, service delivery at country scale.>",
                 "outcome": "<20-150 words: Key outcome evidence — incident data, distributional results, measured impacts.>",
                 "perception": "<20-150 words: Key perception evidence — trust surveys, grievance patterns, civic participation.>"
-            }}}},
+            }},
             "temporal_scope": "<20-150 words: Evidence timeframe (1950-present). Key historical turning points shaping current conditions.>",
-            "distortion_screening": "<20-150 words: City-level distortion assessment. What was tested and what was found. Result: Clean, Suspect, or Unknown.>",
-            "stress_simulation": {{{{
-                "political_shock": "<20-150 words: How would this city's peace system hold under a leadership crisis or electoral dispute?>",
-                "economic_shock": "<20-150 words: How would this city hold under fiscal crisis or a major unemployment surge?>",
-                "narrative_shock": "<20-150 words: How would this city hold under large-scale disinformation or identity mobilization?>",
-                "overall_stress_resilience": "<High|            "confidence_level": "<High|Medium|Low>",
-|Low>",
+            "distortion_screening": "<20-150 words: Country-level distortion assessment. What was tested and what was found. Result: Clean, Suspect, or Unknown.>",
+            "stress_simulation": {{
+                "political_shock": "<20-150 words: How would this country's peace system hold under a leadership crisis or electoral dispute?>",
+                "economic_shock": "<20-150 words: How would this country hold under fiscal crisis or a major unemployment surge?>",
+                "narrative_shock": "<20-150 words: How would this country hold under large-scale disinformation or identity mobilization?>",
+                "overall_stress_resilience":  "<High|Medium|Low>",
                 "stress_score_adjustment": "<20-150 words: Was the overall score adjusted for stress vulnerability? State original score and reason if adjusted.>"
-            }}}},
+            }},
             "inequality_adjustment": "<20-150 words: Distributional imbalances found across income, geography, or identity groups. How did this affect the overall score?>",
             "opacity_risk": "<20-150 words: Which pillar domains had the most opaque or unverifiable data? What does that signal about governance transparency?>",
-            "non_compensation_note": "<20-150 words: Which apparent city-level strengths were discounted because they could not compensate for weakness in dependent domains?>",
+            "non_compensation_note": "<20-150 words: Which apparent country-level strengths were discounted because they could not compensate for weakness in dependent domains?>",
             "cross_pillar_patterns": "<20-150 words: What themes cut across multiple pillars? Are weaknesses reinforcing each other? Are strengths systemic or isolated?>",
-            "relational_integrity": "<20-150 words: Does the city's peace system show alignment, or are there critical disconnects where a weak domain undermines others?>",
+            "relational_integrity": "<20-150 words: Does the country's peace system show alignment, or are there critical disconnects where a weak domain undermines others?>",
             "institutional_capacity": "<20-150 words: Overall state capacity, governance quality, and ability to manage stress across pillars.>",
             "equity_assessment": "<20-150 words: Are peace conditions equitable across geography, income groups, and identity communities?>",
             "conflict_risk_outlook": "<100-150 words: Near-term trajectory — improving, stable, or deteriorating? What are the 1-2 most critical risk drivers?>",
             "strategic_recommendation": "<100-150 words: The 2-3 highest-priority evidence-grounded actions to improve peace conditions.>",
-            "data_transparency_note": "<20-150 words: How open and verifiable is city-level data? Are there structural opacity issues?>",
+            "data_transparency_note": "<20-150 words: How open and verifiable is country-level data? Are there structural opacity issues?>",
             "primary_source": "<20-150 words: Name of the most authoritative source used in this assessment.>"
-        }}}}
+        }}
+
+        --------------------------------------------------
+        EXECUTIVE SUMMARY WRITING FRAMEWORK (COUNTRY)
+        --------------------------------------------------
+
+        The evidence_summary field MUST follow this exact 4-section structure. Each section is mandatory.
+        Target length: 550-700 words total. Write in flowing prose - no section headers, no bullet points.
+
+        SECTION 1 - COUNTRY SCORE AND OVERVIEW (1 paragraph, ~120-150 words):
+        You MUST begin the paragraph using the EXACT sentence structure below. Do not change wording except placeholders:
+        "[Country] achieves an overall PEM score of [X]% percent across 23 pillars, placing it [above/at/below] the median among [peer group description]."
+        Rules:
+        - The phrase "percent across 23 pillars" MUST appear exactly as written
+        - Do NOT repeat "percent across" more than once
+        - Do NOT modify sentence structure
+        - After this sentence, continue naturally to complete the paragraph
+        This section must clearly answer: How well is this country functioning overall?
+
+        SECTION 2 - SYSTEM DIAGNOSIS (1 paragraph, ~130-170 words):
+        Describe what type of country system this is structurally.
+        Answer: Is the country stable, fragile, reforming, or under systemic pressure?
+        What trajectory is it on?
+        Capture dominant national dynamics such as governance capacity, economic structure,
+        demographic pressures, or conflict exposure.
+        This must be a coherent system-level diagnosis, not a list of scores.
+
+        SECTION 3 - STRATEGIC STRENGTHS (1 paragraph, ~130-170 words):
+        Identify the 3-5 strongest pillars or domains.
+        Do NOT list indicators.
+        Frame them as structural strengths that support resilience, stability, or development.
+        Explain why these strengths matter at country scale.
+
+        SECTION 4 - STRUCTURAL RISKS (1 paragraph, ~130-170 words):
+        Identify the 3-5 most critical systemic risks.
+        These must affect long-term stability, peace, or development.
+        Explain cause-effect relationships across sectors.
+        This section must answer: What are the biggest risks in the next decade?
+
+        EVIDENCE_SUMMARY QUALITY CHECKS:
+        - Section 1 must characterize the country as a system, not list facts
+        - Sections 2 and 3 must reflect system-level thinking, not indicators
+        - Section 4 must include cross-sector cause-effect logic
+
         --------------------------------------------------
         JSON OUTPUT FORMAT REQUIREMENTS (CRITICAL)
         --------------------------------------------------
@@ -884,14 +956,15 @@ class PEMResearchService:
         3. Escape special characters:
         - \\n \\t \\" \\\\
         4. No line breaks inside values (single-line strings only)
-        5. Use ASCII characters only
+        5. Use ASCII characters only (no Unicode characters such as \u2019, smart apostrophes, or typographic symbols)
         6. No trailing commas
         7. No missing commas
-        8. No comments inside JSON
-        9. No extra text before or after JSON
-        10. JSON must start with {{ and end with }}
+        8. Use regular hyphens (-) not em-dashes (—) or en-dashes (–)
+        9. No comments inside JSON
+        10. No extra text before or after JSON
+        11. JSON must start with an opening brace and end with a closing brace
 
-        If ANY rule is at risk -> return {{{{}}}}
+        If ANY rule is at risk -> return {{}}
 
         """
 

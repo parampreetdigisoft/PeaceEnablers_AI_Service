@@ -390,7 +390,7 @@ class DatabaseService:
 
         # Match EXACT SQL column order (excluding identity & default columns)
         col_order = [
-            "CityID",
+            "CountryID",
             "PillarID",
             "QuestionID",
             "Year",
@@ -437,7 +437,7 @@ class DatabaseService:
         records = list(df.itertuples(index=False, name=None))
 
         cursor.execute(
-            "{CALL usp_AiBulkUpsertPillarQuestionEvaluations (?)}",
+            "{CALL usp_AiBulkUpsertPillarQuestionCountryEvaluations (?)}",
             (records,)
         )
 
@@ -448,7 +448,7 @@ class DatabaseService:
             cursor = conn.cursor()
 
             col_order = [
-                "CityID",
+                "CountryID",
                 "PillarID",
                 "Year",
                 "AIScore",
@@ -489,7 +489,7 @@ class DatabaseService:
 
             # Source TVP (unchanged unless you changed its table)
             source_df = pd.DataFrame(subRows)[[
-                "CityID",
+                "CountryID",
                 "DataYear",
                 "PillarID",
                 "SourceType",
@@ -501,7 +501,7 @@ class DatabaseService:
             source_records = list(source_df.itertuples(index=False, name=None))
 
             cursor.execute(
-                "{CALL usp_AiBulkUpsertCityPillarEvaluations (?, ?)}",
+                "{CALL usp_AiBulkUpsertCountryPillarEvaluations (?, ?)}",
                 (
                     json.dumps(rows),
                     json.dumps(subRows)
@@ -510,66 +510,11 @@ class DatabaseService:
 
             conn.commit()
 
-    # def bulk_upsert_city_evaluations(self, rows: list[dict]):
-
-    #     with self.get_connection() as conn:
-    #         cursor = conn.cursor()
-
-    #         col_order = [
-    #             "CityID",
-    #             "Year",
-    #             "AIScore",
-    #             "AIProgress",
-    #             "EvaluatorScore",
-    #             "Discrepancy",
-    #             "ConfidenceLevel",
-    #             "EvidenceSummary",
-    #             "StructuralEvidence",
-    #             "OperationalEvidence",
-    #             "OutcomeEvidence",
-    #             "PerceptionEvidence",
-    #             "TemporalScope",
-    #             "DistortionScreening",
-    #             "PoliticalShock",
-    #             "EconomicShock",
-    #             "NarrativeShock",
-    #             "OverallStressResilience",
-    #             "StressScoreAdjustment",
-    #             "InequalityAdjustment",
-    #             "OpacityRisk",
-    #             "NonCompensationNote",
-    #             "CrossPillarPatterns",
-    #             "RelationalIntegrity",
-    #             "InstitutionalCapacity",
-    #             "EquityAssessment",
-    #             "ConflictRiskOutlook",
-    #             "StrategicRecommendation",
-    #             "DataTransparencyNote",
-    #             "PrimarySource",
-    #             "VerifiedBy"
-    #         ]
-
-    #         df = pd.DataFrame(rows)
-
-    #         # ensure missing columns are added
-    #         for col in col_order:
-    #             if col not in df.columns:
-    #                 df[col] = None
-
-    #         df = df[col_order]
-
-    #         records = list(df.itertuples(index=False, name=None))
-
-    #         cursor.execute(
-    #             "{CALL usp_AiBulkUpsertCityEvaluations (?)}",
-    #             (records,)
-    #         )
-
-    #         conn.commit()
-    def bulk_upsert_city_evaluations(self, rows: list[dict]):
+    
+    def bulk_upsert_country_evaluations(self, rows: list[dict]):
         """
-        Bulk upsert city evaluations into SQL Server using TVP.
-        Assumes `usp_AiBulkUpsertCityEvaluations` accepts TVP_CityEvaluation.
+        Bulk upsert country evaluations into SQL Server using TVP.
+        Assumes `usp_AiBulkUpsertCountryEvaluations` accepts TVP_CountryEvaluation.
         """
         import pyodbc
 
@@ -578,7 +523,7 @@ class DatabaseService:
 
         # Define the column order matching your TVP
         col_order = [
-            "CityID",
+            "CountryID",
             "Year",
             "AIScore",
             "AIProgress",
@@ -632,7 +577,7 @@ class DatabaseService:
             # Call the SP with TVP
             # pyodbc requires the TVP parameter to be passed as a list of tuples
             cursor.execute(
-                "EXEC usp_AiBulkUpsertCityEvaluations @CityEvaluations = ?",
+                "EXEC usp_AiBulkUpsertCountryEvaluations @CountryEvaluations = ?",
                 (tvp_records,)
             )
 

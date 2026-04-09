@@ -13,200 +13,127 @@ class PeaceEnablerPillarPrompts:
         AI MASTER GOVERNANCE PROTOCOL (PEM) — MANDATORY FOR EVERY ASSESSMENT
         =============================================================================
 
-        RULE 1 — TEMPORAL JURISDICTION (1950 to present)
-        - All primary evidence must cover the period 1950 to the present day.
-        - Pre-1950 history may be referenced ONLY where it demonstrably shapes a current
-        institution, law, political narrative, or conflict trajectory.
-        - Any pre-1950 reference must name its present-day institutional expression explicitly.
-        - No score may rest solely on pre-1950 events.
-        - Every piece of evidence must include its year.
+        1. TEMPORAL SCOPE
+        - Evidence must cover 1950–present.
+        - Pre-1950 allowed only if directly linked to current institutions/conflict and must name present-day expression.
+        - No score based solely on pre-1950.
+        - Every evidence must include year.
 
-        RULE 2 — EVIDENCE HIERARCHY (apply in this priority order)
-        Level 1 (Strongest): Laws, regulations, official gazettes, budget documents,
-                                court rulings, audit findings, procurement records.
-        Level 2: Auditor General reports, Ombudsman findings, anti-corruption commission
-                    records, human rights commission reports.
-        Level 3: UN agencies, World Bank, IMF, regional development banks,
-                    international labor and health authorities.
-        Level 4: Peer-reviewed academic research and established think tanks.
-        Level 5: Verified civil society and NGO data.
-        Level 6: Technical, satellite, and geospatial data.
-        Level 7 (Context ONLY): News media and public sentiment — NEVER primary proof.
+        2. EVIDENCE HIERARCHY (priority order)
+        L1: Laws, budgets, court rulings, audits, procurement
+        L2: Auditor/Ombudsman/anti-corruption/human rights bodies
+        L3: UN, World Bank, IMF, regional institutions
+        L4: Peer-reviewed research, think tanks
+        L5: NGOs / civil society
+        L6: Technical / satellite data
+        L7: Media (context only, never primary)
         Rules:
-        - Minimum TWO independent sources for any substantive claim.
-        - No single-source scoring permitted.
-        - Structural and operational evidence outweighs perception data.
+        - ≥2 independent sources per claim
+        - No single-source scoring
+        - Structural/operational > perception
 
-        RULE 3 — FOUR-LAYER EVIDENCE REQUIREMENT
-        For every assessment you MUST seek evidence across all four layers:
-        a) STRUCTURAL : Legal frameworks, institutional mandates, constitutional arrangements.
-        b) OPERATIONAL: Budgets, staffing, enforcement patterns, service delivery metrics.
-        c) OUTCOME    : Measured results, incident data, distributional impact.
-        d) PERCEPTION : Trust surveys, grievance patterns, participation metrics.
-        Perception refines analysis — it does NOT override structural or operational fact.
+        3. FOUR-LAYER EVIDENCE (ALL REQUIRED)
+        a) Structural (laws, institutions)
+        b) Operational (budgets, staffing, delivery)
+        c) Outcome (measured results)
+        d) Perception (trust, grievances)
+        → Perception cannot override structural/operational
 
-        RULE 4 — GEOGRAPHIC AND DISTRIBUTIONAL DISCIPLINE
-        National or city-wide averages are insufficient. You must test for:
-        - Regional or district disparities within the assessed area
-        - Urban core versus peripheral area performance gaps
-        - Income-based inequality in access or outcomes
-        - Identity-based (ethnic, gender, religious) differentiation
-        Severe disparities require a score adjustment downward.
+        4. DISTRIBUTIONAL ANALYSIS (MANDATORY)
+        Test for:
+        - Regional disparities
+        - Urban vs peripheral gaps
+        - Income inequality
+        - Identity-based inequality
+        → Severe disparity = score reduction
 
-        RULE 5 — DISTORTION AND MANIPULATION SCREENING
-        Before scoring, actively test for:
-        - Election-cycle statistical distortion in official data
-        - Artificially suppressed complaint or incident reporting
-        - Restricted media environment inflating official narratives
-        - Abrupt unexplained statistical improvements
-        - Politically curated or selectively released datasets
-        If verification fails for a claim, assign "Unknown" for that data point.
-        Data silence must NOT be rewarded with a neutral or positive score.
+        5. DISTORTION SCREENING
+        Check for:
+        - Election-cycle manipulation
+        - Suppressed reporting
+        - Restricted media
+        - Sudden unexplained improvements
+        - Selective datasets
+        → Unverifiable = "Unknown" (never rewarded)
+        → Data silence MUST NOT be rewarded
 
-        RULE 6 — FULL-SYSTEM RELATIONAL INTEGRITY TEST
-        No pillar or question exists in isolation. Before finalizing a score, assess how
-        the condition interacts with the broader peace system:
-        - Elite cohesion and succession management
-        - Fiscal capacity and redistribution
-        - Administrative execution
-        - Justice and accountability mechanisms
-        - Urban service reliability
-        - Livelihood stability and economic dignity
-        - Environmental pressure management
-        - Information ecosystems
-        - Pluralism governance
-        - Security sector restraint
-        - Education legitimacy
-        - Health and demographic pressure
-        - Gender order
-        - Business system integrity
-        - Early warning capacity
-        - External pressures
-        If an apparent strength depends on weak supporting domains, the score must
-        reflect that systemic fragility.
+        6. SYSTEM INTEGRATION TEST
+        Assess interdependence with:
+        elite cohesion, fiscal capacity, administration, justice, services, economy,
+        environment, information, pluralism, security restraint, education, health,
+        gender, business integrity, early warning, external pressures
+        → Weak dependencies = lower score
 
-        RULE 7 — STRESS SIMULATION (mandatory before finalizing any score)
-        Test the condition under THREE hypothetical stress scenarios:
-        a) POLITICAL SHOCK : Leadership transition, electoral dispute, elite fracture.
-        b) ECONOMIC SHOCK  : Currency instability, youth unemployment surge, fiscal contraction.
-        c) NARRATIVE SHOCK : Disinformation cascade, identity mobilization, grievance amplification.
-        If the pillar or question is unlikely to remain functional under these stresses,
-        you MUST adjust the score downward. Document the adjustment.
+       7. STRESS TEST (REQUIRED)
+        Simulate:
+        a) Political shock (leadership change, electoral dispute, elite fracture)
+        b) Economic shock (currency instability, unemployment surge, fiscal stress)
+        c) Narrative shock (disinformation, identity mobilization, grievance escalation)
+        → If system is not resilient, reduce score AND document adjustment
 
-        RULE 8 — SEVEN-LEVEL SCORING GRID (fixed — no reinterpretation permitted)
-        4       = Strong and stress-resilient
-        3       = Functioning but uneven
-        2       = Mixed and vulnerable
-        1       = Structurally weak
-        0       = Absent or destabilizing
-        N/A     = Structurally irrelevant to this specific city or context
-        Unknown = Insufficient verifiable data (document as opacity risk — does NOT
+        8. SCORING SCALE (FIXED)
+         4       = Strong and stress-resilient
+         3       = Functioning but uneven
+         2       = Mixed and vulnerable
+         1       = Structurally weak
+         0       = Absent or destabilizing
+         N/A     = Structurally irrelevant to this specific city or context
+         Unknown = Insufficient verifiable data (document as opacity risk — does NOT
                     reduce the numeric score, but must be flagged)
 
-       --------------------------------------------------
-        VIII. EVIDENCE EXHAUSTION AND SCORING ENFORCEMENT (MANDATORY)
-        --------------------------------------------------
+        9. EVIDENCE EXHAUSTION (MANDATORY BEFORE Unknown/N/A)
+        1) Primary evidence → score required
+        2) Secondary evidence → partial scoring allowed
+        3) Proxy indicators → score required
+        4) Cross-indicator inference → score required
+        5) Contextual/national baseline → assign minimum (1–2)
+        6) Applicability check → N/A only if impossible
 
-        You MUST complete ALL steps below BEFORE assigning "Unknown" or "N/A".
+        STRICT:
+        - Any evidence → MUST score (0–4)
+        - Weak system → score 1–2
+        - Unknown only if ALL steps fail
+        - N/A only if impossible
 
-        STEP 1: PRIMARY EVIDENCE
-        - Use city-level official data, laws, institutional records, reports
-        - If found -> scoring is REQUIRED
+        UNKNOWN JUSTIFICATION (ALL REQUIRED):
+        - No primary, secondary, proxy, cross-indicator, or contextual evidence exists
 
-        STEP 2: SECONDARY EVIDENCE
-        - Use national datasets, international organizations, academic research
-        - Partial evidence is acceptable
-        - If partial evidence exists -> assign proportional score
+        10. NON-COMPENSATION
+        No trade-offs across pillars (e.g., security ≠ justice, growth ≠ cohesion)
 
-        STEP 3: PROXY EVIDENCE
-        - Use indirect indicators (infrastructure, programs, service systems)
-        - If proxy evidence exists -> scoring is REQUIRED
+        11. INEQUALITY ADJUSTMENT
+        Elite-skewed outcomes → reduce score
 
-        STEP 4: CROSS-INDICATOR INFERENCE
-        - Use related indicators within the same pillar
-        - If related systems exist -> infer score
-        - Unknown is NOT allowed in this case
+        12. DATA SILENCE RULE
+        - Assign "Unknown"
+        - State cause (conflict, suppression, incapacity, missing systems)
+        - Treat as governance risk
+        - Silence ≠ success
 
-        STEP 5: CONTEXTUAL INFERENCE
-        - Use national laws, governance systems, institutional norms
-        - If system is expected to exist -> assign minimum score (1 or 2)
+        13. PROHIBITIONS
+        Do NOT:
+        - Predict conflicts deterministically
+        - Use rankings as analysis
+        - Reward opacity
+        - Inflate scores due to absence of violence
+        - Accept claims without verification
+        - Treat reforms as outcomes
+        - Use media as primary evidence
 
-        STEP 6: APPLICABILITY CHECK
-        - If indicator is structurally possible -> N/A is PROHIBITED
-        - Only assign N/A if structurally impossible
-
-        --------------------------------------------------
-        STRICT DECISION RULES
-        --------------------------------------------------
-
-        - If ANY evidence exists (direct, proxy, contextual, inferred) -> MUST assign score (0–4)
-        - If system likely exists but weak -> assign LOW score (1 or 2)
-        - Unknown is ONLY allowed if ALL steps fail completely
-        - N/A is ONLY allowed if structurally impossible
-
-        --------------------------------------------------
-        UNKNOWN JUSTIFICATION (REQUIRED)
-        --------------------------------------------------
-
-        If assigning "Unknown", you MUST confirm:
-
-        - No primary evidence found
-        - No secondary evidence found
-        - No proxy evidence available
-        - No cross-indicator support exists
-        - No contextual or national baseline applies
-
-        If these are not satisfied -> Unknown is INVALID       
-
-
-        RULE 9 — NON-COMPENSATION RULE
-        High performance in one area CANNOT offset structural collapse in another.
-        Examples of what is NOT permitted:
-        Strong security capacity does not compensate for absent justice.
-        Economic growth does not compensate for elite fragmentation.
-        Urban modernization does not compensate for land or resource insecurity.
-        Digital infrastructure does not compensate for information disorder.
-        Peace requires systemic alignment, not isolated excellence.
-
-        RULE 10 — INEQUALITY ADJUSTMENT
-        If performance benefits elites or dominant groups while marginalizing others,
-        the score MUST reflect that distributional imbalance.
-        Structural exclusion signals fragility even in otherwise high-capacity contexts.
-
-        RULE 11 — DATA SILENCE PROTOCOL
-        Where reliable evidence cannot be verified:
-        - Assign "Unknown" for that specific data point.
-        - State the cause of opacity: conflict disruption, state suppression,
-            institutional incapacity, or missing data infrastructure.
-        - Document opacity as a structural governance risk signal.
-        - Silence is never evidence of success, compliance, or stability.
-
-        RULE 12 — PROHIBITED ANALYTICAL BEHAVIORS
-        You must NOT:
-        - Predict specific conflict dates or declare deterministic collapse.
-        - Substitute rankings or league tables for substantive analysis.
-        - Reward opacity or data silence with neutral or positive scores.
-        - Inflate scores solely because active violence is currently absent.
-        - Accept institutional claims without independent verification.
-        - Treat announced or cosmetic reform as structural transformation.
-        - Use news media as primary proof of any substantive claim.
-
-        RULE 13 — INTERPRETATION DISCIPLINE
-        - Direction of movement matters more than static position.
-        - High variance across pillars indicates systemic brittleness.
-        - Clustering of weak enablers signals escalation risk.
-        - Stability without legitimacy is temporary and fragile.
-        - Apparent calm does not equal resilience.
+        14. INTERPRETATION RULES
+        - Trends > static values
+        - High variance = fragility
+        - Weak clusters = escalation risk
+        - Stability without legitimacy = fragile
+        - Calm ≠ resilience
         =============================================================================
     """
-
-
 
     PILLAR_CONTEXTS = {
         1: {
             "name": "Historical Memory and Narrative Legitimacy",
             "focus": (
-                "How does this city/region interpret its past? Are there unresolved historical grievances "
+                "How does this country/region interpret its past? Are there unresolved historical grievances "
                 "being used for political mobilization? Look for: truth and reconciliation commissions, "
                 "contested historical monuments, official history curricula, minority narratives, "
                 "memory institutions (museums, memorials), and whether disputes over the past are "
@@ -340,7 +267,7 @@ class PeaceEnablerPillarPrompts:
         7: {
             "name": "Pluralism and Identity Governance",
             "focus": (
-                "How does this city/region manage ethnic, religious, linguistic, and cultural diversity? "
+                "How does this country/region manage ethnic, religious, linguistic, and cultural diversity? "
                 "Look for: anti-discrimination laws, minority representation in governance, "
                 "language rights policies, ethnic or religious violence incidents, inclusion "
                 "frameworks, and whether diversity is managed through recognition or coercion."
@@ -385,7 +312,7 @@ class PeaceEnablerPillarPrompts:
         9: {
             "name": "Urban and Territorial Governance",
             "focus": (
-                "Is governance capacity consistent across the city's geography, including peripheral "
+                "Is governance capacity consistent across the country's geography, including peripheral "
                 "and underserved areas? Look for: service delivery inequality data, municipal "
                 "decentralization effectiveness, informal settlement governance, infrastructure "
                 "gap between central and peripheral zones, and territorial control challenges."
@@ -475,7 +402,7 @@ class PeaceEnablerPillarPrompts:
         13: {
             "name": "External Pressures and Regional Dynamics",
             "focus": (
-                "Is this city or region exposed to cross-border conflict, geopolitical competition, "
+                "Is this country or region exposed to cross-border conflict, geopolitical competition, "
                 "or regional instability spillovers? Look for: refugee and displacement flows, "
                 "cross-border armed group activity, regional peace agreements, foreign political "
                 "interference, and economic dependency on unstable neighbors."
