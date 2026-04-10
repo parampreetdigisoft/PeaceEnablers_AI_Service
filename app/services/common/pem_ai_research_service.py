@@ -156,7 +156,7 @@ class PEMResearchService:
                     }
 
                 except Exception as ex:
-                    logger.error(f"Attempt {attempt+1} failed in research_and_score_pillar: {str(ex)}")
+                    logger.error(f"Attempt {attempt+1} for pillarID {pillarID} and country name {country_name} && question {question_text} failed in research_and_score_pillar: {str(ex)}")
                     if attempt < self.max_retries - 1:
                         await asyncio.sleep(self.retry_delay)
                         continue
@@ -263,7 +263,7 @@ class PEMResearchService:
                         }
 
                 except Exception as ex:
-                    logger.error(f"Attempt {attempt+1} failed in research_and_score_pillar: {str(ex)}")
+                    logger.error(f"Attempt {attempt+1} for  {pillar_name} and country name {country_name} failed in research_and_score_pillar: {str(ex)}")
                     if attempt < self.max_retries - 1:
                         await asyncio.sleep(self.retry_delay)
                         continue
@@ -364,7 +364,7 @@ class PEMResearchService:
                         }
 
                 except Exception as ex:
-                    logger.error(f"Attempt {attempt+1} failed in research_and_score_country: {str(ex)}")
+                    logger.error(f"Attempt {attempt+1}  for {country_name}failed in research_and_score_country: {str(ex)}")
                     if attempt < self.max_retries - 1:
                         await asyncio.sleep(self.retry_delay)
                         continue
@@ -744,7 +744,7 @@ class PEMResearchService:
                     and their current institutional expression (if relevant).
             Step 2: Conduct broad web research across all evidence levels for this pillar.
             Step 3: Collect evidence across all four layers for this specific pillar.
-            Step 4: Apply evidence hierarchy — require minimum 2 and max 8 independent sources.
+            Step 4: Apply evidence hierarchy.
             Step 5: Test geographic equity — does the data reflect the whole country, or only
                     central/affluent zones? Identify core-periphery performance gaps.
             Step 6: Screen for distortion — election-cycle data, restricted media, curated statistics,
@@ -757,6 +757,10 @@ class PEMResearchService:
             Step 11: Apply non-compensation rule — note if this pillar's strength is offset or
                     undermined by weakness in a dependent domain.
             Step 12: Assign final score using the seven-level grid.
+            Step 13: Provide sources — MANDATORY:
+                    - You MUST return between 1 and 7 sources
+                    - Each source MUST include all required fields
+                    - If you cannot find at least 1 valid sources, then make one guessing reasonable source                   
 
             OUTPUT: Return ONLY this exact JSON object (no markdown, no extra text):
             {{{{
