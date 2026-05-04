@@ -4,10 +4,10 @@ Fire-and-forget pattern for long-running analysis tasks
 """
 import logging
 from fastapi import APIRouter, HTTPException
-from app.view_models.ChatRequest import ChatRequest
-from app.view_models.AnalysisRequest import AnalysisResponse, ChatResponse
+from app.view_models.ChatRequest import ChatCountryRequest, ChatGlobalRequest, ChatRequest
+from app.view_models.AnalysisRequest import ChatResponse
 logger = logging.getLogger(__name__)
-from app.services.rag_query_service import rag_query_service
+from app.services.chat_service import chat_service
 
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -22,7 +22,7 @@ async def ask(request: ChatRequest):
     - Returns AI-generated answer
     """
     try:
-        result = await rag_query_service.answer_country_question (
+        result = await chat_service.answer_country_question (
             country_id = request.countryID,
             question = request.questionText,
             pillar_id = request.pillarID 
@@ -36,3 +36,54 @@ async def ask(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error in chat API: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/country", response_model=ChatResponse)
+async def ask(request: ChatCountryRequest):
+    """
+    Chat endpoint:
+    - Accepts user question in body
+    - Runs RAG pipeline
+    - Returns AI-generated answer
+    """
+    try:
+        result = await chat_service.answer_country_question (
+            country_id = request.countryID,
+            questionText = request.questionText,
+            historyText = request.historyText,
+            faqid = request.faqid,
+            pillar_id = request.pillarID 
+        )
+
+        return ChatResponse (
+            success=True,
+            message="Response fetched successfully",
+            result=result
+        )
+    except Exception as e:
+        logger.error(f"Error in chat API: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/global", response_model = ChatResponse)
+async def ask(request: ChatGlobalRequest):
+    """
+    Chat endpoint:
+    - Accepts user question in body
+    - Runs RAG pipeline
+    - Returns AI-generated answer
+    """
+    try:
+        result = await chat_service.answer_global_question (
+            questionText = request.questionText,
+            historyText = request.historyText 
+        )
+
+        return ChatResponse(
+            success=True,
+            message="Response fetched successfully",
+            result=result
+        )
+    except Exception as e:
+        logger.error(f"Error in chat API: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    

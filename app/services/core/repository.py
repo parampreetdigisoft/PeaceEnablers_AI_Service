@@ -226,12 +226,12 @@ class DatabaseRepository:
     async def get_ai_country_context(
     self,
         country_id: int,
-        year: int
+        year: int,
+        pillar_id: Optional[int] = None,
     ) -> Dict[str, Any]:
 
         query = """
             SELECT 
-                c.CountryID,
                 c.CountryName,
                 c.Continent,
                 a.EvidenceSummary,
@@ -239,16 +239,18 @@ class DatabaseRepository:
                 a.OutcomeEvidence,
                 a.PerceptionEvidence,
                 a.CrossPillarPatterns,
-                a.StrategicRecommendation
+                a.StrategicRecommendation,
+                p.PillarName
             FROM AICountryScores a
             JOIN Countries c 
                 ON a.CountryID = c.CountryID 
                 AND c.IsDeleted = 0
+            left join pillars p on p.PillarID=?
             WHERE a.CountryID = ?
             AND a.Year = ?
         """
 
-        params = (country_id, year)
+        params = (pillar_id,country_id, year)
 
         result = await self.engine.fetch_dicts_async(query, params)
 
@@ -295,6 +297,37 @@ class DatabaseRepository:
         )
 
         await self.engine.execute_write_async(query, params)
+
+
+    async def get_FAQ_context(self) -> List[Dict]:
+        query = """
+            select FAQID,Related,Category,QuestionText from AIAssistantFAQ
+        """
+        return await self.engine.fetch_dicts_async(query)
+
+    async def usp_GetCountryDataForLLM(self, country_id: int, FAQIDs: List[str], pillarId: Optional[int] = None) -> List[Dict]:
+
+        query = """
+            EXEC dbo.usp_GetCountryDataForLLM ?, ?, ?
+        """
+
+        params = (
+           country_id, json.dumps(FAQIDs), pillarId
+        )
+        response = await self.engine.fetch_dicts_async(query, params)
+
+        return response
+    
+    async def usp_GetGlobalDataForLLM(self, FAQIDs: List[str]) -> List[Dict]:
+        query = """
+            EXEC dbo.usp_GetGlobalDataForLLM ?
+        """
+        params = ( json.dumps(FAQIDs))
+        response = await self.engine.fetch_dicts_async(query, params)
+
+        return response
+
+
 # ---------------------------------------------------------------------------
 # Singleton
 # ---------------------------------------------------------------------------

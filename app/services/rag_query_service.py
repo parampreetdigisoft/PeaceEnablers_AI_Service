@@ -61,7 +61,7 @@ class RAGQueryService:
         self._llm_svc = LLMBaseService(max_retries=3, retry_delay=1.0)
 
     # ------------------------------------------------------------------ #
-    #  Initialisation                                                      #
+    #  Initialisation                                                    #
     # ------------------------------------------------------------------ #
 
     async def initialize(self) -> None:
@@ -106,6 +106,7 @@ class RAGQueryService:
         local_context = self._build_context_block(chunks)
 
         return local_context
+    
 
     async def answer_country_question(
         self,
@@ -170,6 +171,39 @@ class RAGQueryService:
         )
 
         return answer
+
+    async def send_country_question_to_llm(
+        self,
+        questionText: str,
+        ai_context: str,
+        countryName: str,
+        pillar_name: str,
+        historyText: Optional[str] = None
+    ) -> str:
+
+        # Stage 3 — LLM answer synthesis
+        answer = await self._llm_svc.invoke_messages(
+            messages=[
+                {
+                    "role": "system",
+                    "content": PEMPromptTemplates.chat_country_system_prompt(),
+                },
+                {
+                    "role": "user",
+                    "content": PEMPromptTemplates.chat_answer_user_prompt(
+                        ai_context, historyText, questionText,
+                        countryName, pillar_name
+                    ),
+                },
+            ],
+            label=f"rag_answer|country{countryName}",
+        )
+
+        return answer
+
+
+
+
 
     # ------------------------------------------------------------------ #
     #  Stage 1 — DB: fetch TOC                                           #
@@ -280,6 +314,31 @@ class RAGQueryService:
                 }
             )
         return chunks
+    
+    async def get_related_FAQ_IDs(self,question: str,toc: List[Dict],) -> List[int]:
+        """
+            Ask the LLM which FAQ section IDs are most relevant to the question.
+            Returns a list of FAQIDs integers (may be empty).
+        """
+        if not toc:
+            return []
+
+        toc_text = "\n".join(
+            f"[{row['FAQID']}] (QuestionText {row['QuestionText']}) {row['Category']}"
+            for row in toc
+        )
+        prompt = PEMPromptTemplates.rag_routing_prompt(toc_text, question)
+        raw = await self._llm_svc.invoke_raw(
+            prompt, label=f"rag_routing|q={question[:40]}"
+        )
+
+        match = re.search(r"\[[\d,\s]*\]", raw)
+        if match:
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
+        return []
 
     # ------------------------------------------------------------------ #
     #  Helpers                                                            #

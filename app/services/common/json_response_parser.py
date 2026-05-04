@@ -346,7 +346,7 @@ def build_immediateSituation_record(ai: dict) -> Dict[str, Any]:
     }
 
 # ====================================================================== #
-#  Internal helpers                                                       #
+#  Internal helpers                                                      #
 # ====================================================================== #
 
 def _require_fields(data: Dict, fields: list[str]) -> None:

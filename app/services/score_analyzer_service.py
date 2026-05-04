@@ -363,7 +363,7 @@ class ScoreAnalyzerService:
                     year=year
                 )
 
-        result = self._build_immediateSituation_record(ai_country, ai_data)
+        result = self._build_immediateSituation_record(country_id, ai_data)
         
         await self._db.save_immediate_situation_summary(country_id,year,result)
         
@@ -520,7 +520,7 @@ class ScoreAnalyzerService:
         }
 
     # ------------------------------------------------------------------ #
-    #  Batch flush helpers                                                #
+    #  Batch flush helpers                                               #
     # ------------------------------------------------------------------ #
 
     async def _flush(
