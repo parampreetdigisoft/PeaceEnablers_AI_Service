@@ -5,7 +5,7 @@ Main FastAPI Application
 import logging
 from app.services.core.logging_config import setup_logging
 
-# ✅ Must be called before anything else creates a logger
+# Must be called before anything else creates a logger
 setup_logging()
 
 from fastapi import FastAPI, Request
@@ -122,15 +122,15 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("🚀 Starting AI Microservice...")
+    logger.info("Starting AI Microservice...")
     try:
         if not db_repository.engine.test_connection():
-            logger.warning("⚠️ Database connection failed — some features may not work")
+            logger.warning("Database connection failed — some features may not work")
 
-        logger.info("✅ All services initialized successfully!")
-        logger.info(f"📚 API docs at http://{settings.API_HOST}:{settings.API_PORT}/docs")
+        logger.info("All services initialized successfully!")
+        logger.info(f"API docs at http://{settings.API_HOST}:{settings.API_PORT}/docs")
     except Exception as e:
-        logger.error(f"❌ Startup failed: {e}", exc_info=True)
+        logger.error(f"Startup failed: {e}", exc_info=True)
         raise
 
 
