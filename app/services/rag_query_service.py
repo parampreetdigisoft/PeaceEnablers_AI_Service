@@ -280,7 +280,7 @@ class RAGQueryService:
         Run a vector similarity search against the ChromaDB collection and
         return the top-k chunks, optionally filtered to the routed TOC IDs.
         """
-        collection_name = f"country_{country_id}"
+        collection_name =  f"Country_{country_id}" if pillar_id is None else f"Country_Pillar_{country_id}"
         try:
             #    collections = self.client.list_collections()
 

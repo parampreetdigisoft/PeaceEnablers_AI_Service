@@ -51,16 +51,15 @@ async def process_document(country_doc_id:int):
         logger.error(error_msg, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/delete_document/{country_id}/{country_doc_id}", response_model=AnalysisResponse)
-async def delete_document(country_id:int, country_doc_id:int):
+
+@router.post("/delete-document/{country_doc_id}", response_model=AnalysisResponse)
+async def delete_document(country_doc_id:int):
     """
     Read the document by it's id and save chunk in relation db and vector db    
     Returns immediately while process document runs in background
     """
     try:
-
-        await read_process_document.delete_document(country_id, country_doc_id)
-        
+        await read_process_document.delete_document(country_doc_id)        
         return AnalysisResponse(
             success=True,
             message="deletion document started successfully. Processing in background.",

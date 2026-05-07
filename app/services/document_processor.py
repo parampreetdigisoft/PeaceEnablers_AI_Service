@@ -37,20 +37,20 @@ class DocumentProcessor:
         )
         self.repository = DatabaseRepository()
 
-    def get_or_create_collection(self, country_id: int):
+    def get_or_create_collection(self,document_level: str, country_id: Optional[int]):
         """One ChromaDB collection per country (or per pillar if you want finer grain)"""
-        name =  f"country_{country_id}"
+        name = f"{document_level}_{country_id}" if country_id is not None else f"{document_level}"
         return self.client.get_or_create_collection(
             name=name,
             embedding_function=self.embed_fn,
             metadata={"hnsw:space": "cosine"}
         )
     
-    def get_collection(self, country_id: int, country_doc_id:int):
-        name =  f"country_{country_id}"
+    def get_collection(self, document_level: str, country_id: Optional[int]):
+        name = f"{document_level}_{country_id}" if country_id is not None else f"{document_level}"
         return self.client.get_collection(name=name)
 
-    async def process_document(self, file_path: str, file_type: str,
+    async def process_document(self, file_path: str, file_type: str, document_level: str,
                          country_doc_id: int, country_id: int,
                          pillar_id: Optional[int]) -> Dict[str, Any]:
         """Main entry — extracts TOC, chunks, embeds, stores."""
@@ -63,7 +63,7 @@ class DocumentProcessor:
 
         toc_records = []
         chunk_records = []
-        collection = self.get_or_create_collection(country_id)
+        collection = self.get_or_create_collection(document_level,country_id)
 
         texts, ids, metadatas = [], [], []
 
@@ -76,7 +76,7 @@ class DocumentProcessor:
                 texts.append(chunk_text)
                 ids.append(chunk_id)
                 metadatas.append({
-                    "country_id": country_id,
+                    "country_id": country_id or -1,
                     "pillar_id": pillar_id or -1,
                     "country_doc_id": country_doc_id,
                     "toc_id": toc_id,
@@ -175,8 +175,8 @@ class DocumentProcessor:
                 chunks.append(chunk)
         return chunks
 
-    def delete_document(self,country_id: int, country_doc_id: int):
-        collection = self.get_collection(country_id, country_doc_id)
+    def delete_document(self,document_level: str,country_doc_id: int, country_id: Optional[int]):
+        collection = self.get_collection(document_level, country_id)
         if collection:
             collection.delete(
                 where={"country_doc_id": country_doc_id}

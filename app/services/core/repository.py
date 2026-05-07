@@ -128,7 +128,7 @@ class DatabaseRepository:
         self,
         section: Dict,
         country_doc_id: int,
-        country_id: int,
+        country_id: Optional[int],
         pillar_id: Optional[int],
     ) -> Optional[int]:
         if not section:
@@ -193,7 +193,7 @@ class DatabaseRepository:
         self,
         chunks: List[Dict],
         country_doc_id: int,
-        country_id: int,
+        country_id: Optional[int],
         pillar_id: Optional[int],
     ) -> None:
         if not chunks:
