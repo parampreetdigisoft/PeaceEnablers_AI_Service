@@ -132,7 +132,7 @@ class RAGQueryService:
 
         return local_context
 
-    async def send_country_question_to_llm(
+    async def send_question_to_llm(
         self,
         questionText: str,
         ai_context: str,

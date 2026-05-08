@@ -305,27 +305,19 @@ class DatabaseRepository:
         """
         return await self.engine.fetch_dicts_async(query)
 
-    async def usp_GetCountryDataForLLM(self, country_id: int, FAQIDs: List[str], pillarId: Optional[int] = None) -> List[Dict]:
+    async def GetLocalContextDataForLLM(self, FAQIDs: List[str],country_id: Optional[int] = None,  pillarId: Optional[int] = None) -> List[Dict]:
 
         query = """
-            EXEC dbo.usp_GetCountryDataForLLM ?, ?, ?
+            EXEC dbo.usp_GetLocalContextDataForLLM ?, ?, ?
         """
 
         params = (
-           country_id, json.dumps(FAQIDs), pillarId
+            json.dumps(FAQIDs),country_id, pillarId
         )
         response = await self.engine.fetch_dicts_async(query, params)
 
         return response
-    
-    async def usp_GetGlobalDataForLLM(self, FAQIDs: List[str]) -> List[Dict]:
-        query = """
-            EXEC dbo.usp_GetGlobalDataForLLM ?
-        """
-        params = ( json.dumps(FAQIDs))
-        response = await self.engine.fetch_dicts_async(query, params)
 
-        return response
 
 
 # ---------------------------------------------------------------------------

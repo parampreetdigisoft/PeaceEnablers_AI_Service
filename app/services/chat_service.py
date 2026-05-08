@@ -46,7 +46,7 @@ class ChatService:
             relevant_faq_ids = await rag_query_service.get_related_FAQ_IDs(questionText, faqs)
 
             if len(relevant_faq_ids)>0:
-                ai_context = await self._db.usp_GetCountryDataForLLM(country_id,relevant_faq_ids,pillar_id)
+                ai_context = await self._db.GetLocalContextDataForLLM(relevant_faq_ids,country_id,pillar_id)
             else:
                 ai_context = await rag_query_service.get_country_document_context(country_id,questionText, pillar_id)
         else:
@@ -57,7 +57,7 @@ class ChatService:
         pillar_name =ai_country_context["PillarName"]
         countryName =ai_country_context["CountryName"]
 
-        answer = await rag_query_service.send_country_question_to_llm(questionText,ai_context,countryName,pillar_name,historyText)
+        answer = await rag_query_service.send_question_to_llm(questionText,ai_context,countryName,pillar_name,historyText)
 
         return answer
     
@@ -84,14 +84,14 @@ class ChatService:
             relevant_faq_ids=[faqid]
             
         if len(relevant_faq_ids)>0:
-            ai_context = await self._db.usp_GetGlobalDataForLLM(relevant_faq_ids)
+            ai_context = await self._db.GetLocalContextDataForLLM(relevant_faq_ids)
         else:
             ai_context = await rag_query_service.get_global_document_context(questionText)
 
-        countryName=""
+        countryName="global for all countries"
         pillar_name=""            
 
-        answer = await rag_query_service.send_country_question_to_llm(questionText, ai_context, countryName, pillar_name, historyText)
+        answer = await rag_query_service.send_question_to_llm(questionText, ai_context, countryName, pillar_name, historyText)
 
         return answer
 
