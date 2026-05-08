@@ -12,6 +12,7 @@ Stage 2 — ChromaDB vector search within those sections
 LLM calls are handled by LLMBaseService.
 All prompt text comes from PEMPromptTemplates.
 """
+
 from datetime import datetime
 import os
 import re
@@ -89,88 +90,47 @@ class RAGQueryService:
 
         relevant_toc_ids = []
         if len(toc) > 4:
-            relevant_toc_ids = await self._route_via_toc(msg_text, toc)
+            relevant_toc_ids = await self._get_relevant_Id(msg_text, toc)
         else:
             relevant_toc_ids = [row["TOCID"] for row in toc]
 
         # Stage 2 — Vector retrieval
         chunks = self._fetch_relevant_chunks(
-            country_id=country_id,
             question=msg_text,
             toc_ids=relevant_toc_ids,
-            top_k=10,
+            country_id=country_id,
             pillar_id=pillar_id,
+            top_k=10,
         )
 
         # Build context and history strings
         local_context = self._build_context_block(chunks)
 
         return local_context
-    
 
-    async def answer_country_question(
-        self,
-        country_id: int,
-        question: str,
-        pillar_id: Optional[int] = None,
-    ) -> str:
-        """
-        Answer a natural-language question about a country using:
-          1. LLM-selected TOC sections
-          2. ChromaDB vector search within those sections
-          3. LLM synthesis of retrieved chunks + chat history
-          
-        """
-        # Stage 1 — TOC routing
-        toc = await self._get_country_toc(country_id, pillar_id)
+    async def get_global_document_context(self, msg_text: str) -> str:
+
+        toc = await self._get_global_toc()
 
         relevant_toc_ids = []
         if len(toc) > 4:
-            relevant_toc_ids = await self._route_via_toc(question, toc)
+            relevant_toc_ids = await self._get_relevant_Id(msg_text, toc)
         else:
             relevant_toc_ids = [row["TOCID"] for row in toc]
 
         # Stage 2 — Vector retrieval
         chunks = self._fetch_relevant_chunks(
-            country_id=country_id,
-            question=question,
+            question=msg_text,
             toc_ids=relevant_toc_ids,
-            top_k=5,
-            pillar_id=pillar_id,
+            country_id=None,
+            pillar_id=None,
+            top_k=10,
         )
 
         # Build context and history strings
         local_context = self._build_context_block(chunks)
-        year = datetime.now().year      
-        ai_country= await self._db.get_ai_country_context(country_id, year)
 
-        if len(local_context)  < 50 :
-           
-            local_context = "\n".join(f"{key}: {value}" for key, value in ai_country.items())
-
-        history_str =""
-        pillar_name =""
-        countryName =ai_country["CountryName"]
-
-        # Stage 3 — LLM answer synthesis
-        answer = await self._llm_svc.invoke_messages(
-            messages=[
-                {
-                    "role": "system",
-                    "content": PEMPromptTemplates.rag_answer_system_prompt(),
-                },
-                {
-                    "role": "user",
-                    "content": PEMPromptTemplates.rag_answer_user_prompt(
-                        local_context, history_str, question,
-                        countryName, pillar_name
-                    ),
-                },
-            ],
-            label=f"rag_answer|country{country_id}",
-        )
-
-        return answer
+        return local_context
 
     async def send_country_question_to_llm(
         self,
@@ -178,7 +138,7 @@ class RAGQueryService:
         ai_context: str,
         countryName: str,
         pillar_name: str,
-        historyText: Optional[str] = None
+        historyText: Optional[str] = None,
     ) -> str:
 
         # Stage 3 — LLM answer synthesis
@@ -186,13 +146,12 @@ class RAGQueryService:
             messages=[
                 {
                     "role": "system",
-                    "content": PEMPromptTemplates.chat_country_system_prompt(),
+                    "content": PEMPromptTemplates.chat_system_prompt(),
                 },
                 {
                     "role": "user",
                     "content": PEMPromptTemplates.chat_answer_user_prompt(
-                        ai_context, historyText, questionText,
-                        countryName, pillar_name
+                        ai_context, historyText, questionText, countryName, pillar_name
                     ),
                 },
             ],
@@ -200,10 +159,6 @@ class RAGQueryService:
         )
 
         return answer
-
-
-
-
 
     # ------------------------------------------------------------------ #
     #  Stage 1 — DB: fetch TOC                                           #
@@ -231,11 +186,24 @@ class RAGQueryService:
         # Future: add   AND t.TenantID = ?   when multi-tenant
         return await self._db.engine.fetch_dicts_async(query, (country_id,))
 
+    async def _get_global_toc(self) -> List[Dict]:
+
+        query = """
+            SELECT t.TOCID, t.SectionPath, t.SectionTitle, t.SectionLevel,
+                   t.PillarID, cd.FileName
+            FROM DocumentTOC t
+            JOIN CountryDocuments cd ON cd.CountryDocumentID = t.CountryDocumentID
+            WHERE  cd.IsDeleted = 0 or DocumentLevel Like ?
+        """
+        documentLevel = "Global"
+
+        return await self._db.engine.fetch_dicts_async(query, (documentLevel))
+
     # ------------------------------------------------------------------ #
     #  Stage 1 — LLM: route question to relevant TOC sections            #
     # ------------------------------------------------------------------ #
 
-    async def _route_via_toc(
+    async def _get_relevant_Id(
         self,
         question: str,
         toc: List[Dict],
@@ -251,7 +219,7 @@ class RAGQueryService:
             f"[{row['TOCID']}] (Level {row['SectionLevel']}) {row['SectionPath']}"
             for row in toc
         )
-        prompt = PEMPromptTemplates.rag_routing_prompt(toc_text, question)
+        prompt = PEMPromptTemplates.get_relevant_Id_prompt(toc_text, question)
         raw = await self._llm_svc.invoke_raw(
             prompt, label=f"rag_routing|q={question[:40]}"
         )
@@ -270,17 +238,25 @@ class RAGQueryService:
 
     def _fetch_relevant_chunks(
         self,
-        country_id: int,
         question: str,
         toc_ids: List[int],
-        top_k: int = 5,
+        country_id: Optional[int] = None,
         pillar_id: Optional[int] = None,
+        top_k: int = 5,
     ) -> List[Dict]:
         """
         Run a vector similarity search against the ChromaDB collection and
         return the top-k chunks, optionally filtered to the routed TOC IDs.
         """
-        collection_name =  f"Country_{country_id}" if pillar_id is None else f"Country_Pillar_{country_id}"
+        collection_name = (
+            "Global"
+            if country_id is None
+            else (
+                f"Country_{country_id}"
+                if pillar_id is None
+                else f"Country_Pillar_{country_id}"
+            )
+        )
         try:
             #    collections = self.client.list_collections()
 
@@ -314,11 +290,15 @@ class RAGQueryService:
                 }
             )
         return chunks
-    
-    async def get_related_FAQ_IDs(self,question: str,toc: List[Dict],) -> List[int]:
+
+    async def get_related_FAQ_IDs(
+        self,
+        question: str,
+        toc: List[Dict],
+    ) -> List[int]:
         """
-            Ask the LLM which FAQ section IDs are most relevant to the question.
-            Returns a list of FAQIDs integers (may be empty).
+        Ask the LLM which FAQ section IDs are most relevant to the question.
+        Returns a list of FAQIDs integers (may be empty).
         """
         if not toc:
             return []
@@ -327,7 +307,7 @@ class RAGQueryService:
             f"[{row['FAQID']}] (QuestionText {row['QuestionText']}) {row['Category']}"
             for row in toc
         )
-        prompt = PEMPromptTemplates.rag_routing_prompt(toc_text, question)
+        prompt = PEMPromptTemplates.get_relevant_Id_prompt(toc_text, question)
         raw = await self._llm_svc.invoke_raw(
             prompt, label=f"rag_routing|q={question[:40]}"
         )

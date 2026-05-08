@@ -591,7 +591,7 @@ class PEMPromptTemplates:
     #  RAG prompts                                                        #
     # ================================================================== #
     @staticmethod
-    def rag_routing_prompt(toc_text: str, question: str) -> str:
+    def get_relevant_Id_prompt(toc_text: str, question: str) -> str:
         """
         Stage-1 TOC routing prompt.
         Returns a plain string prompt (not a ChatPromptTemplate).
@@ -633,7 +633,7 @@ class PEMPromptTemplates:
 
 
     @staticmethod
-    def chat_country_system_prompt() -> str:
+    def chat_system_prompt() -> str:
         return f"""\
         You are **PeaceMapper** — an AI country-intelligence assistant built for the Peace Enablers Matrix (PEM) platform.
         You help analysts, researchers, and decision-makers understand peace, stability, and risk conditions for specific countries.

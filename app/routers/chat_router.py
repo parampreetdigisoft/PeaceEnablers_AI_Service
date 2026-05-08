@@ -28,7 +28,7 @@ async def ask(request: ChatRequest):
             pillar_id = request.pillarID 
         )
 
-        return ChatResponse(
+        return ChatResponse (
             success=True,
             message="Response fetched successfully",
             result=result
@@ -75,7 +75,8 @@ async def ask(request: ChatGlobalRequest):
     try:
         result = await chat_service.answer_global_question (
             questionText = request.questionText,
-            historyText = request.historyText 
+            historyText = request.historyText, 
+            faqid = request.faqid,
         )
 
         return ChatResponse(
