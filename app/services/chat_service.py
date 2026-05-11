@@ -2,15 +2,14 @@
 #  chat_service.py  (refactored)                                         #
 # =========================================================================== #
 
-from datetime import datetime
 import logging
 from typing import Optional
-from app.services.common.llm_base_service import LLMBaseService
+from datetime import datetime
 from app.services.core.repository import DatabaseRepository
 from app.services.rag_query_service import rag_query_service
+from app.services.common.llm_base_service import LLMBaseService
 
 logger = logging.getLogger(__name__)
-
 CHROMA_PATH = "./chroma_store"
 
 
@@ -94,15 +93,5 @@ class ChatService:
         answer = await rag_query_service.send_question_to_llm(questionText, ai_context, countryName, pillar_name, historyText)
 
         return answer
-
-
-
-
-
-
-
-
-
-
 
 chat_service = ChatService()
