@@ -45,11 +45,12 @@ class ChatService:
             relevant_faq_ids = await rag_query_service.get_related_FAQ_IDs(questionText, faqs)
 
             if len(relevant_faq_ids)>0:
+                relevant_faq_ids = relevant_faq_ids[: 3 if historyText == None else 2]
                 ai_context = await self._db.GetLocalContextDataForLLM(relevant_faq_ids,country_id,pillar_id)
             else:
                 ai_context = await rag_query_service.get_country_document_context(country_id,questionText, pillar_id)
         else:
-            ai_context = await self._db.usp_GetCountryDataForLLM(country_id,[faqid],pillar_id)
+            ai_context = await self._db.GetLocalContextDataForLLM(country_id,[faqid],pillar_id)
             
         if len(ai_context) < 1:
             ai_context = "\n".join(f"{key}: {value}" for key, value in ai_country_context.items())
