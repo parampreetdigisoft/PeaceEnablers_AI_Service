@@ -44,11 +44,29 @@ class DatabaseRepository:
 
         return await self.engine.fetch_df_async(query)
 
+
+    # ------------------------------------------------------------------
+    # score and Kpi recalculation
+    # ------------------------------------------------------------------
+
+    async def AiRecalculateCountryScore(self, countryID: int) -> None:
+
+        await self.engine.execute_sp_async(
+            "EXEC sp_AiRecalculateCountryScore @CountryID = ?",
+            (countryID,),
+        )
+
+    async def AiInsertAnalyticalLayerResults(self, countryID: int) -> None:
+
+        await self.engine.execute_sp_async(
+            "EXEC sp_AiInsertAnalyticalLayerResults @CountryID = ?",
+            (countryID,),
+        )
     # ------------------------------------------------------------------
     # Question evaluations
     # ------------------------------------------------------------------
 
-    async def bulk_upsert_question_evaluations(self, rows: List[Dict]) -> None:
+    async def bulk_upsert_question_evaluations(self, rows: List[Dict], countryID:int) -> None:
         if not rows:
             return
 
@@ -73,6 +91,8 @@ class DatabaseRepository:
             "{CALL usp_AiBulkUpsertPillarQuestionCountryEvaluations (?)}",
             (records,),
         )
+
+        await self.AiRecalculateCountryScore(countryID)
 
     # ------------------------------------------------------------------
     # Pillar evaluations

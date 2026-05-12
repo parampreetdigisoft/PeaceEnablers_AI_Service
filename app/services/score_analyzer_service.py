@@ -229,8 +229,8 @@ class ScoreAnalyzerService:
 
                     normalized = self._safe_normalized(row.NormalizedValue)
                     batch.append(self._build_question_record(row, ai_data, normalized))
-                    batch = await self._flush(
-                        batch, self._db.bulk_upsert_question_evaluations
+                    batch = await self._flushQuestion(
+                        country.CountryID, batch ,self._db.bulk_upsert_question_evaluations
                     )
 
                 except Exception as exc:
@@ -242,9 +242,10 @@ class ScoreAnalyzerService:
                         exc_info=True,
                     )
 
-            await self._flush(
-                batch, self._db.bulk_upsert_question_evaluations, force=True
+            await self._flushQuestion(
+                country.CountryID, batch ,self._db.bulk_upsert_question_evaluations, force=True
             )
+            await self._db.AiInsertAnalyticalLayerResults(country.CountryID)
 
         return True
 
@@ -296,6 +297,8 @@ class ScoreAnalyzerService:
                 )
 
         await self._flush_pillar(pillar_batch, source_batch, force=True)
+        await self._db.AiRecalculateCountryScore(country.CountryID)
+        
         return True
 
     async def _analyze_country(self, country: Any, **_) -> bool:
@@ -334,6 +337,8 @@ class ScoreAnalyzerService:
         await self._flush(batch, self._db.bulk_upsert_country_evaluations, force=True)
 
         await self.immediateSituation(country.CountryID)
+        await self._db.AiRecalculateCountryScore(country.CountryID)
+        
         return True
 
     async def immediateSituation(self, country_id: int, **_) -> bool:
@@ -523,6 +528,23 @@ class ScoreAnalyzerService:
     #  Batch flush helpers                                               #
     # ------------------------------------------------------------------ #
 
+    async def _flushQuestion(
+        self,
+        countryID:int,
+        batch: list[dict],
+        upsert_fn,
+        *,
+        force: bool = False,
+    ) -> list[dict]:
+        """
+        Upsert *batch* when it reaches _BATCH_SIZE (or when force=True).
+        Returns an empty list after flushing, or the original list if not yet full.
+        """
+        if batch and (force or len(batch) >= _BATCH_SIZE):
+            await upsert_fn(batch,countryID)
+            return []
+        return batch
+    
     async def _flush(
         self,
         batch: list[dict],
