@@ -50,7 +50,7 @@ class ChatService:
             else:
                 ai_context = await rag_query_service.get_country_document_context(country_id,questionText, pillar_id)
         else:
-            ai_context = await self._db.GetLocalContextDataForLLM(country_id,[faqid],pillar_id)
+            ai_context = await self._db.GetLocalContextDataForLLM([faqid],country_id,pillar_id)
             
         if len(ai_context) < 1:
             ai_context = "\n".join(f"{key}: {value}" for key, value in ai_country_context.items())
@@ -71,14 +71,7 @@ class ChatService:
         
         relevant_faq_ids =[]
         if faqid is None: 
-            query = """
-                select 
-                FAQID,Related,Category,QuestionText 
-                from AIAssistantFAQ 
-                where Related like '%global%'
-            """
-            faqs = await self._db.engine.fetch_dicts_async(query)
-
+            faqs = await self._db.get_FAQ_context(True)
             relevant_faq_ids = await rag_query_service.get_related_FAQ_IDs(questionText, faqs)
         else :
             relevant_faq_ids=[faqid]
