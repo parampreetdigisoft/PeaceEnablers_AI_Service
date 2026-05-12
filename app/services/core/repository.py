@@ -319,10 +319,16 @@ class DatabaseRepository:
         await self.engine.execute_write_async(query, params)
 
 
-    async def get_FAQ_context(self) -> List[Dict]:
-        query = """
-            select FAQID,Related,Category,QuestionText from AIAssistantFAQ
+    async def get_FAQ_context(self, isglobal: bool = False) -> List[Dict]:
+
+        where = "WHERE Related LIKE 'global'" if isglobal else "WHERE Related LIKE 'country'"
+
+        query = f"""
+            SELECT FAQID, Related, Category, QuestionText
+            FROM AIAssistantFAQ
+            {where}
         """
+
         return await self.engine.fetch_dicts_async(query)
 
     async def GetLocalContextDataForLLM(self, FAQIDs: List[str],country_id: Optional[int] = None,  pillarId: Optional[int] = None) -> List[Dict]:
