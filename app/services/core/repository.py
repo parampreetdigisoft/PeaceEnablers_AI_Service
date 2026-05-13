@@ -252,6 +252,7 @@ class DatabaseRepository:
 
         query = """
             SELECT 
+                a.AIProgress as PeaceEnablerScore,
                 c.CountryName,
                 c.Continent,
                 a.EvidenceSummary,
