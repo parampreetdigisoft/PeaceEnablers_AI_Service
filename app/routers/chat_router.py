@@ -64,6 +64,30 @@ async def ask(request: ChatCountryRequest):
         logger.error(f"Error in chat API: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
     
+@router.post("/global", response_model = ChatResponse)
+async def ask(request: ChatGlobalRequest):
+    """
+    Chat endpoint:
+    - Accepts user question in body
+    - Runs RAG pipeline
+    - Returns AI-generated answer
+    """
+    try:
+        result = await chat_service.answer_global_question (
+            questionText = request.questionText,
+            historyText = request.historyText, 
+            faqid = request.faqid,
+        )
+
+        return ChatResponse(
+            success=True,
+            message="Response fetched successfully",
+            result=result
+        )
+    except Exception as e:
+        logger.error(f"Error in chat API: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @router.post("/cross-comparision", response_model = ChatResponse)
 async def ask(request: ChatCrossComparisionRequest):
 
