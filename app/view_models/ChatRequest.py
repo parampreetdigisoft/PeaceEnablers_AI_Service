@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import Any, List, Optional, Dict
 
 class ChatRequest(BaseModel):
     countryID: int
@@ -18,3 +18,19 @@ class ChatCountryRequest(BaseModel):
     historyText: Optional[str] = None
     faqid: Optional[int] = None
     pillarID: Optional[int] = None
+
+
+class ChatCrossComparisionRequest(BaseModel):
+    questionText: str
+    countryIDs: list[int]
+    historyText: Optional[str] = None
+    faqid: Optional[int] = None
+
+
+class ChatCountryExecutiveSlidesRequest(BaseModel):
+    countryId: int
+
+class ChatCountryExecutiveSlidesResponse(BaseModel):
+    success: bool
+    message: str
+    result: Any

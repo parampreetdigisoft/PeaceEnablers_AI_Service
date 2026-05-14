@@ -24,7 +24,7 @@ from typing import List, Dict, Any, Optional
 from app.services.common.llm_base_service import LLMBaseService
 from app.services.common.country_prompt import PEMPromptTemplates
 from app.services.core.repository import DatabaseRepository
-
+from app.services.common import json_response_parser as jrp
 logger = logging.getLogger(__name__)
 
 CHROMA_PATH = "./chroma_store"
@@ -160,6 +160,34 @@ class RAGQueryService:
 
         return answer
 
+    async def send_cross_comparision_question_to_llm(
+        self,
+        questionText: str,
+        ai_context: str,
+        countryName: str,
+        pillar_name: str,
+        historyText: Optional[str] = None,
+    ) -> str:
+
+        # Stage 3 — LLM answer synthesis
+        answer = await self._llm_svc.invoke_messages(
+            messages=[
+                {
+                    "role": "system",
+                    "content": PEMPromptTemplates.chat_system_prompt(),
+                },
+                {
+                    "role": "user",
+                    "content": PEMPromptTemplates.chat_answer_user_prompt(
+                        ai_context, historyText, questionText, countryName, pillar_name
+                    ),
+                },
+            ],
+            label=f"rag_answer|country{countryName}",
+        )
+
+        return answer
+    
     # ------------------------------------------------------------------ #
     #  Stage 1 — DB: fetch TOC                                           #
     #  ⚡ Tenant migration point: only this method touches the DB        #
@@ -319,6 +347,73 @@ class RAGQueryService:
             except json.JSONDecodeError:
                 pass
         return []
+
+
+    async def country_executive_slides( self,  country_name: str, country: str, ai_country_context: str,  documentContext: str, allPillarContexts: str, year: int = None) -> Dict[str, Any]:
+
+        try:
+
+            # ---------------------------------------------------------
+            # SYSTEM PROMPT
+            # ---------------------------------------------------------
+            system_prompt = (
+                PEMPromptTemplates.Country_executive_slides_prompt(
+                    publicContext=ai_country_context,
+                    documentContext=documentContext,
+                    allPillarContexts=allPillarContexts
+                )
+            )
+
+            # ---------------------------------------------------------
+            # USER TEMPLATE
+            # ---------------------------------------------------------
+            user_template = """
+            country:
+            {country_name}
+
+            Country:
+            {country}
+
+            Year:
+            {year}
+            """
+
+            # ---------------------------------------------------------
+            # LLM CALL
+            # ---------------------------------------------------------
+            raw = await self._llm_svc.invoke_chain(
+                system_prompt=system_prompt,
+                user_template=user_template,
+                variables={
+                    "country_name": country_name,
+                    "country": country,
+                    "year": year
+                },
+                label=f"country-executive-slides|{country_name}",
+            )
+
+            analysis = json.loads(
+                jrp.clean_json_response(raw)
+            )
+
+            return {
+                "success": True,
+                "data": analysis
+            }
+
+        except Exception as exc:
+
+            logger.exception(
+                "country_executive_slides failed"
+            )
+
+            return {
+                "success": False,
+                "error": str(exc)
+            }
+
+
+
 
     # ------------------------------------------------------------------ #
     #  Helpers                                                            #

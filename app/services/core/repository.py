@@ -344,6 +344,19 @@ class DatabaseRepository:
         response = await self.engine.fetch_dicts_async(query, params)
 
         return response
+    
+    async def GetCrossComparisionLocalContextDataForLLM(self, country_ids: List[str]) -> List[Dict]:
+
+        query = """
+            EXEC dbo.usp_CountryCrossComparision_faq ?
+        """
+
+        params = (
+            json.dumps(country_ids)
+        )
+        response = await self.engine.fetch_dicts_async(query, params)
+
+        return response
 
 
 
