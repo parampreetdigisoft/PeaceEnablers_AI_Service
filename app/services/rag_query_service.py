@@ -307,9 +307,9 @@ class RAGQueryService:
             f"[{row['FAQID']}] (QuestionText {row['QuestionText']}) {row['Category']}"
             for row in toc
         )
-        prompt = PEMPromptTemplates.get_relevant_Id_prompt(toc_text, question)
+        prompt = PEMPromptTemplates.get_relevant_faqId_prompt(toc_text, question)
         raw = await self._llm_svc.invoke_raw(
-            prompt, label=f"rag_routing|q={question[:40]}"
+            prompt, label=f"rag_routing|q={question[:80]}"
         )
 
         match = re.search(r"\[[\d,\s]*\]", raw)
