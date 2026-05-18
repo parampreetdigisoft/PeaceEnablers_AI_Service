@@ -949,48 +949,47 @@ class PEMPromptTemplates:
     @staticmethod
     def Country_executive_slides_prompt(
         publicContext: str,
-        documentContext: str,
         allPillarContexts: str
     ) -> str:
 
         return f"""
         You are a lead executive intelligence analyst
-        for the Veridian Urban Index (VUI).
+        for the Peace Enablers Matrix (PEM) platform.
 
-        Your task is to generate a Country-WIDE EXECUTIVE
-        INTELLIGENCE DASHBOARD BRIEFING.
+        Your task is to generate a COUNTRY-WIDE EXECUTIVE
+        INTELLIGENCE DASHBOARD BRIEFING focused on RECENT PERFORMANCE,
+        SYSTEMIC RISKS, and EMERGING EARLY WARNINGS.
 
-        The output powers a compact rotating dashboard
-        with 5 executive slides:
+        The output powers a high-level executive dashboard
+        with 3 major analytical sections:
 
-        1. Daily Performance
-        2. Weekly Performance
-        3. Monthly Performance
-        4. Combined Risks
-        5. Early Warnings
+        1. Recent Performance
+        2. Combined Risks
+        3. Early Warnings
 
         --------------------------------------------------
-        DATA SOURCES & PRIORITY
+        DATA SOURCES
         --------------------------------------------------
 
-        1. PRIMARY — Local Context:
-        {documentContext}
-
-        2. SECONDARY — Trusted Public Intelligence:
+        Trusted Public Intelligence:
         {publicContext}
 
         Rules:
-        - Prioritize LOCAL evidence wherever available.
-        - Use PUBLIC intelligence for validation.
-        - Avoid unsupported claims.
-        - Focus only on operationally relevant insights.
+        -Use trusted public intelligence sources as the primary evidence base.
+        -Incorporate insights from recent web intelligence, news reporting, official publications, economic indicators, social discourse, and publicly available analytical sources.
+        -Use news media, policy reports, operational updates, and credible social sentiment signals to identify emerging risks and instability patterns.
+        -Social media signals may be used only as supporting indicators for escalation trends, public sentiment shifts, protests, unrest, disruption signals, or rapidly developing situations.
+        -Prioritize the most recent and operationally relevant developments from the current year and immediate past year.
+        -Cross-validate major claims across multiple trusted sources whenever possible.
+        -Avoid unsupported claims, speculative narratives, or unverified misinformation.
+        -Focus only on actionable, operational, and executive-relevant intelligence insights.
 
         --------------------------------------------------
         ALL PILLAR CONTEXTS
         --------------------------------------------------
 
         Use the following pillar intelligence frameworks
-        to evaluate OVERALL Country CONDITIONS:
+        to evaluate OVERALL COUNTRY CONDITIONS:
 
         {allPillarContexts}
 
@@ -1003,9 +1002,9 @@ class PEMPromptTemplates:
         You MUST synthesize signals across ALL pillars
         to determine:
 
-        - overall Country stability
+        - overall country stability
         - operational stress
-        - worsening conditions
+        - worsening or improving conditions
         - institutional resilience
         - infrastructure pressure
         - environmental exposure
@@ -1016,53 +1015,111 @@ class PEMPromptTemplates:
         Focus heavily on:
         - cross-pillar interactions
         - systemic risks
-        - deterioration trends
+        - deterioration or recovery trends
         - stabilization signals
         - future threats
+        - operational implications
 
         --------------------------------------------------
-        SLIDE OBJECTIVES
+        RECENT PERFORMANCE ANALYSIS RULES
         --------------------------------------------------
 
-        DAILY PERFORMANCE
-        - Focus on immediate operational conditions
-        - Focus on current pressures and disruptions
-        - Explain what requires immediate attention
+        The RECENT PERFORMANCE section is the MOST IMPORTANT section.
 
-        WEEKLY PERFORMANCE
-        - Focus on worsening or recurring patterns
-        - Explain sustained operational stress
+        The analysis MUST primarily focus on:
+        - the CURRENT YEAR performance
+        - the IMMEDIATE PAST YEAR performance
 
-        MONTHLY PERFORMANCE
-        - Focus on structural resilience and systemic pressure
-        - Explain long-term deterioration or stabilization
+        The AI MUST compare these against earlier years
+        only to identify:
+        - acceleration
+        - deterioration
+        - recovery
+        - structural shifts
+        - directional change
 
+        IMPORTANT:
+        - Do NOT overemphasize events from 2–3 years ago
+        as if they are the latest developments.
+        - Prioritize the MOST RECENT conditions,
+        patterns, and momentum.
+        - The analysis should clearly explain whether
+        conditions are improving, stabilizing, or worsening
+        compared with prior years.
+
+        The RECENT PERFORMANCE summary MUST:
+        - combine short-term and medium-term trends
+        - replace separate daily/weekly/monthly breakdowns
+        - explain operational realities and systemic direction
+        - identify recent drivers of change
+        - highlight meaningful shifts in stability or risk
+        - provide executive-grade analytical interpretation
+
+        --------------------------------------------------
         COMBINED RISKS
-        - Return TOP 5 Country-wide risks
-        - Rank by urgency and escalation potential
-        - Focus on cascading system impacts
+        --------------------------------------------------
 
+        Return the TOP 5 COUNTRY-WIDE RISKS.
+
+        Focus on:
+        - cascading system impacts
+        - cross-pillar deterioration
+        - institutional fragility
+        - operational disruption
+        - economic and social pressure
+        - escalation likelihood
+
+        Risks should be ranked by:
+        - urgency
+        - scale of impact
+        - escalation potential
+
+        --------------------------------------------------
         EARLY WARNINGS
-        - Identify likely future threats
-        - Focus on predictive escalation signals
-        - Focus on risks expected within days, weeks, or months
+        --------------------------------------------------
+
+        Identify likely future threats.
+
+        Focus on:
+        - predictive escalation signals
+        - emerging instability patterns
+        - worsening operational indicators
+        - risks expected within days, weeks, or months
+
+        Early warnings should be:
+        - forward-looking
+        - evidence-driven
+        - operationally meaningful
 
         --------------------------------------------------
         STYLE RULES
         --------------------------------------------------
 
         Outputs MUST be:
-        - concise
         - executive-grade
-        - analytical
-        - operational
+        - highly analytical
+        - operationally relevant
         - insight-dense
+        - substantive
+        - data-driven
+        - strategically useful
+
+        The summaries should read like
+        professional intelligence assessments,
+        NOT short notes.
+
+        Every paragraph must:
+        - provide meaningful analysis
+        - explain trends and implications
+        - connect causes with outcomes
+        - describe momentum and direction
 
         Avoid:
         - fluff
         - repetition
         - generic wording
-        - unnecessary explanation
+        - shallow observations
+        - vague summaries
 
         Every sentence must provide intelligence value.
 
@@ -1075,19 +1132,9 @@ class PEMPromptTemplates:
         {{
             "countryName": "<Country name>",
 
-            "daily": {{
+            "recentPerformance": {{
                 "trend": "<Improving|Stable|Worsening>",
-                "summary": "<80-120 words>"
-            }},
-
-            "weekly": {{
-                "trend": "<Improving|Stable|Worsening>",
-                "summary": "<80-120 words>"
-            }},
-
-            "monthly": {{
-                "trend": "<Improving|Stable|Worsening>",
-                "summary": "<80-120 words>"
+                "summary": "<180-300 words>"
             }},
 
             "combinedRisks": {{
@@ -1098,7 +1145,7 @@ class PEMPromptTemplates:
                         "riskScore": <1-100>,
                         "severity": "<Critical|High|Medium>",
                         "trend": "<Improving|Stable|Worsening>",
-                        "description": "<1-2 sentence description>",
+                        "description": "<2-4 sentence analytical description>",
                         "recommendation": "<short recommendation>"
                     }}
                 ]
@@ -1108,7 +1155,7 @@ class PEMPromptTemplates:
                 "warnings": [
                     {{
                         "title": "<warning title>",
-                        "description": "<1-2 sentence description>",
+                        "description": "<2-4 sentence analytical description>",
                         "timeframe": "<Days|Weeks|Months>",
                         "impactLevel": "<Low|Medium|High|Severe>"
                     }}
@@ -1123,6 +1170,7 @@ class PEMPromptTemplates:
         - combinedRisks MUST contain EXACTLY 5 risks
         - earlyWarnings MUST contain EXACTLY 3 warnings
         - riskScore MUST be integers between 1 and 100
+        - recentPerformance summary MUST be detailed and analytical
         - No markdown
         - No bullet points
         - No explanations outside JSON
@@ -1130,6 +1178,6 @@ class PEMPromptTemplates:
         {PEMPromptTemplates._OUTPUT_STYLE}
 
         {PEMPromptTemplates._JSON_RULES}
-        """
+    """
 
     

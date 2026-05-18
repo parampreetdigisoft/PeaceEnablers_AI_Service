@@ -150,18 +150,10 @@ class ChatService:
     
 
     async def answer_Country_executive_slides( self, country_id: int) -> Dict[str, Any]:
-
         try:
-
             year = datetime.now().year
 
-            # ---------------------------------------------------------
-            # country CONTEXT
-            # ---------------------------------------------------------
-            ai_country = await self._db.get_ai_country_context(
-                country_id,
-                year
-            )
+            ai_country = await self._db.get_ai_country_context(country_id, year)
 
             if not ai_country:
                 return {
@@ -170,66 +162,20 @@ class ChatService:
                 }
 
             country_name = ai_country["CountryName"]
-            country = ai_country["CountryName"]
 
             ai_country_context = "\n".join(
                 f"{key}: {value}"
                 for key, value in ai_country.items()
             )
 
-            # ---------------------------------------------------------
-            # DEFAULT EXECUTIVE QUESTION
-            # ---------------------------------------------------------
-            questionText = f"""
-            Generate a country-wide executive intelligence briefing
-            for {country_name}.
-
-            Analyze:
-            - current operational conditions
-            - governance effectiveness
-            - infrastructure performance
-            - healthcare pressure
-            - environmental risks
-            - social cohesion
-            - housing instability
-            - economic pressure
-            - institutional resilience
-            - public safety conditions
-
-            Identify:
-            - immediate operational concerns
-            - worsening trends
-            - stabilization signals
-            - top country-wide risks
-            - emerging threats
-            - future escalation risks
-
-            Focus on cross-pillar intelligence synthesis
-            and executive situational awareness.
-            """
-
-            # ---------------------------------------------------------
-            # DOCUMENT CONTEXT
-            # ---------------------------------------------------------
-            document_context = await rag_query_service.get_country_document_context(
-                country_id,
-                questionText
-            )
-
             all_pillar_contexts = PeaceEnablerPillarPrompts.get_all_pillar_names()
 
-            # ---------------------------------------------------------
-            # CALL RAG SERVICE
-            # ---------------------------------------------------------
             ai_result  = await rag_query_service.country_executive_slides(
                 country_name=country_name,
-                country=country,
                 ai_country_context=ai_country_context,
-                documentContext=document_context,
                 allPillarContexts=all_pillar_contexts,
                 year=year
             )
-
 
             if not ai_result.get("success"):
                 return {
@@ -239,26 +185,13 @@ class ChatService:
 
             data = ai_result["data"]
 
-            # ---------------------------------------------------------
-            # FINAL RESPONSE
-            # ---------------------------------------------------------
             result = {
                 "countryId": country_id,
                 "countryName": data.get("countryName"),
 
-                "dailyPerformance": {
-                    "trend": data["daily"]["trend"],
-                    "summary": data["daily"]["summary"]
-                },
-
-                "weeklyPerformance": {
-                    "trend": data["weekly"]["trend"],
-                    "summary": data["weekly"]["summary"]
-                },
-
-                "monthlyPerformance": {
-                    "trend": data["monthly"]["trend"],
-                    "summary": data["monthly"]["summary"]
+                "recentPerformance": {
+                    "trend": data["recentPerformance"]["trend"],
+                    "summary": data["recentPerformance"]["summary"]
                 },
 
                 "combinedRisks": data["combinedRisks"]["risks"],

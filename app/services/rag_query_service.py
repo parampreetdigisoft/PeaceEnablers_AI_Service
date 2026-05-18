@@ -349,7 +349,7 @@ class RAGQueryService:
         return []
 
 
-    async def country_executive_slides( self,  country_name: str, country: str, ai_country_context: str,  documentContext: str, allPillarContexts: str, year: int = None) -> Dict[str, Any]:
+    async def country_executive_slides( self,  country_name: str, ai_country_context: str, allPillarContexts: str, year: int = None) -> Dict[str, Any]:
 
         try:
 
@@ -359,7 +359,6 @@ class RAGQueryService:
             system_prompt = (
                 PEMPromptTemplates.Country_executive_slides_prompt(
                     publicContext=ai_country_context,
-                    documentContext=documentContext,
                     allPillarContexts=allPillarContexts
                 )
             )
@@ -370,9 +369,6 @@ class RAGQueryService:
             user_template = """
             country:
             {country_name}
-
-            Country:
-            {country}
 
             Year:
             {year}
@@ -386,7 +382,6 @@ class RAGQueryService:
                 user_template=user_template,
                 variables={
                     "country_name": country_name,
-                    "country": country,
                     "year": year
                 },
                 label=f"country-executive-slides|{country_name}",
@@ -402,7 +397,6 @@ class RAGQueryService:
             }
 
         except Exception as exc:
-
             logger.exception(
                 "country_executive_slides failed"
             )
