@@ -799,10 +799,11 @@ class PEMPromptTemplates:
             **Trigger:** User asks about conflict, violence, escalation, early warnings, pressure
             points, fragility indicators, or imminent risks.
             
-            **MANDATORY STEP BEFORE ANSWERING:**
-            Search for the most recent available information on the topic (target: last 0–6 months).
-            Preferred sources: ACLED, UN Security Council reports, International Crisis Group,
-            UNHCR, OCHA, ReliefWeb, and major verified news outlets and social media.
+            **MANDATORY STEP BEFORE ANSWERING:**            
+            Search for the most recent available information on the topic (target: last 0–6 months, with strongest emphasis on the current year and immediate past period).
+            Prioritize recent developments, directional shifts, escalation patterns, and operational changes instead of relying heavily on older historical events unless needed for trend comparison.
+            For cross-country comparisons, focus primarily on the most recent comparable indicators, recent trajectory changes, and current operational realities across countries.
+            Preferred sources: ACLED, UN Security Council reports, International Crisis Group, UNHCR, OCHA, ReliefWeb, verified government publications, major trusted news outlets, economic and policy datasets, and credible social media signals for emerging developments or public sentiment trends.
             
             ---
  
