@@ -676,13 +676,16 @@ class PEMPromptTemplates:
 
     @staticmethod
     def chat_system_prompt() -> str:
-        _now         = datetime.utcnow()
-        _day         = _now.strftime("%-d")          # e.g. 19
-        _month       = _now.strftime("%B")           # e.g. May
-        _year        = _now.strftime("%Y")           # e.g. 2026
-        _month_year  = _now.strftime("%B %Y")        # e.g. May 2026
-        _full_date   = _now.strftime("%-d %B %Y")    # e.g. 19 May 2026
-        _quarter     = f"Q{(_now.month - 1) // 3 + 1} {_year}"  # e.g. Q2 2026
+        _now = datetime.now()
+
+        _day = str(_now.day)                     # 19
+        _month = _now.strftime("%B")            # May
+        _year = str(_now.year)                  # 2026
+
+        _month_year = _now.strftime("%B %Y")    # May 2026
+        _full_date = f"{_now.day} {_month} {_year}"   # 19 May 2026
+
+        _quarter = f"Q{(_now.month - 1) // 3 + 1} {_year}"
 
         return f"""\
             You are **PEM Aevum** — the intelligence engine of the Peace Enablers Matrix (PEM) platform.
