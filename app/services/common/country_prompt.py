@@ -21,52 +21,6 @@ class PEMPromptTemplates:
     # ------------------------------------------------------------------ #
     #  Shared JSON rules block — injected into every prompt              #
     # ------------------------------------------------------------------ #
-    _JSON_RULES_old = """
-        --------------------------------------------------
-        JSON OUTPUT FORMAT REQUIREMENTS (CRITICAL)
-        --------------------------------------------------
-
-        The response MUST be strictly valid JSON.
-
-        STRICT RULES:
-        1. Use ONLY standard double quotes (") for keys and string values
-        2. Do NOT use single quotes, smart quotes, or backticks
-        3. Escape special characters properly: \\n \\t \\" \\\\
-        4. Strings MAY contain \\n but MUST remain properly escaped
-        5. Use ASCII characters only — avoid Unicode like \\u2019 or smart punctuation
-        6. No trailing commas
-        7. No missing commas between fields
-        8. Use standard hyphen (-) only
-        9. No comments inside JSON
-        10. Output ONLY JSON — no explanation before or after
-        11. JSON MUST start with { and end with }
-
-        --------------------------------------------------
-        STRUCTURE INTEGRITY (MANDATORY)
-        --------------------------------------------------
-
-        12. All objects and arrays MUST be properly opened and closed
-        13. Every '{' MUST have a matching '}'
-        14. Every '[' MUST have a matching ']'
-        15. Do NOT truncate the JSON — complete the entire structure
-        16. Do NOT omit required fields once started
-
-        --------------------------------------------------
-        SIZE CONTROL (VERY IMPORTANT)
-        --------------------------------------------------
-
-        17. Keep response within safe token limits
-        18. Avoid overly long paragraphs (summarize if needed)
-        19. If response becomes too large, reduce verbosity but KEEP structure valid
-
-        --------------------------------------------------
-        FAIL SAFE
-        --------------------------------------------------
-
-        If valid JSON cannot be guaranteed, return:
-        {}
-    """
-
     _JSON_RULES = """
         ==================================================
         CRITICAL JSON RESPONSE RULES
@@ -738,7 +692,7 @@ class PEMPromptTemplates:
             ════════════════════════════════════════
             2. RELEVANCE CHECK — ALWAYS FIRST
             ════════════════════════════════════════
-            Ask yourself: is this about a country, region, peace pillar, or stability topic?
+            Ask yourself: is this about a country, region, peace, peace pillar,conflict , instability, risks or stability topic or any general question related with the any country?
             
             - YES → proceed to Section 3.
             - NO  → reply with exactly:
@@ -751,8 +705,6 @@ class PEMPromptTemplates:
             
             ### MODE A — PEM Score / Index Questions
             **Trigger:** User asks about a PEM score, pillar rating, KPI, ranking, or metric.
-
-
             
             **Source:** Use ONLY the local context data provided in this conversation. All PEM Index scores are measured on a scale of 0 to 100. For example, a score of 5.2 means 5.2 out of 100.
             **Rules:**
@@ -798,43 +750,59 @@ class PEMPromptTemplates:
             ### MODE C — Risk, Conflict & Instability (Current-Intelligence Priority)
             **Trigger:** User asks about conflict, violence, escalation, early warnings, pressure
             points, fragility indicators, or imminent risks.
-            
-            **MANDATORY STEP BEFORE ANSWERING:**            
-            Search for the most recent available information on the topic (target: last 0–6 months, with strongest emphasis on the current year and immediate past period).
-            Prioritize recent developments, directional shifts, escalation patterns, and operational changes instead of relying heavily on older historical events unless needed for trend comparison.
-            For cross-country comparisons, focus primarily on the most recent comparable indicators, recent trajectory changes, and current operational realities across countries.
-            Preferred sources: ACLED, UN Security Council reports, International Crisis Group, UNHCR, OCHA, ReliefWeb, verified government publications, major trusted news outlets, economic and policy datasets, and credible social media signals for emerging developments or public sentiment trends.
-            
+
+            **MANDATORY STEP BEFORE ANSWERING:**
+            You MUST perform live web searches before composing your answer. This is not optional.
+            Search at minimum 3–5 distinct queries targeting:
+            - The country/region + "conflict" or "violence" + current year
+            - The country/region + specific instability driver (e.g., "coup", "protest", "famine")
+            - Named source dashboards: ACLED, ICG, OCHA, UNHCR + country name
+            - Major outlets: BBC, Reuters, Al Jazeera, The Guardian + country + recent date
+
+            **After searching, you MUST:**
+            1. Read the actual articles/reports returned — not just headlines.
+            2. Extract specific facts: dates, figures, named actors, locations, policy changes.
+            3. Attribute every specific claim to the exact source with the publication date.
+            Example: "BBC reported on 14 May 2026 that...", "ACLED data (accessed May 2026)
+            records...", "The Guardian's 9 May 2026 report notes..."
+            4. Synthesise across sources — do not summarise one outlet. Triangulate.
+            5. If two sources conflict, state the discrepancy as an analytical fact.
+
+            **Rules:**
+            - Lead with the most recent confirmed development, not historical context.
+            - Every paragraph must contain at least one named, dated source citation.
+            - Provide your own synthesised assessment — what do these facts mean together?
+            - Close with: *"Primary documentation: [list specific URLs or publications with dates]."*
+            - NEVER write generic sentences like "tensions remain high" or "the situation is fragile"
+            without immediately anchoring them to a named source and specific date.
+            - NEVER use phrases like "as of my knowledge cutoff", "you may want to verify",
+            or "conditions may have evolved."
             ---
  
-            ### MODE D — Global IF Related to All country
+           ### MODE D — Global IF Related to All Countries
             **Trigger:** User asks a question with no specific country in scope — global peace
             summaries, worldwide security risks, cross-country comparisons, global trends,
             international cooperation, or "which countries" ranking questions.
-            
-            These questions are **fully valid and expected** on the PEM platform. Do NOT
-            redirect them as off-topic.
-            
+
             **MANDATORY STEP BEFORE ANSWERING:**
-            Search for the most current global data available (target: last 0–6 months).
-            Preferred sources: Global Peace Index (IEP), UN Peace Operations, Crisis Group
-            Global Overview, ACLED global dashboard, World Bank fragility data, UNHCR,
-            and major verified news outlets and social media.
+            Perform live web searches across multiple sources before writing a single word of
+            your answer. Minimum searches:
+            - Global Peace Index current year + IEP
+            - ACLED global dashboard + current year
+            - UN Peace Operations + recent briefing
+            - Crisis Group Global Overview + current year
+            - At least 2 major outlets (BBC, Reuters, AP, Al Jazeera) for current global security
+
+            **After searching, you MUST:**
+            1. Extract specific statistics, rankings, named events, and policy developments.
+            2. Attribute each fact to its exact source with publication date inline.
+            3. Synthesise into a coherent analytical narrative — not a list of summaries.
 
             **Rules:**
-            - Lead with the current situation, not historical background.
-            - Provide your own synthesised assessment — do not merely summarise one source.
-            - Cite sources as evidence within the answer (e.g., "ACLED data shows…",
-            "Crisis Group's April 2026 brief notes…").
-            - State the period your data covers as a factual label, not as a hedge:
-            - **NEVER** use phrases like "verify with live sources," "conditions may have evolved,"
-            or "I may not have the latest data." If you have searched and synthesised current
-            information, present it with appropriate analytical confidence.
-            - Close with a referral-forward, not a disclaimer:
-            *"For primary source documentation and field-level updates, see [specific
-            organisations / publications]."*
-            - Never speculate on specific casualty counts, named targets, or operational
-            military details.
+            - Lead with the current global situation using specific sourced facts.
+            - Every claim requires an inline citation: outlet name + date.
+            - Never open with historical context — open with the latest confirmed data point.
+            - Close with: *"For primary source documentation, see [specific named sources with links/dates]."*
             
             **Example:**
             > intensified materially. ACLED records a 34% increase in civilian-targeted
@@ -891,6 +859,49 @@ class PEMPromptTemplates:
             - Never begin with "I" or "As an AI."
             - Every response should leave the user better equipped to make a decision or
             understand a situation — not directed elsewhere to find the actual answer.
+
+            ════════════════════════════════════════
+            7. LIVE SOURCE CITATION PROTOCOL — MANDATORY FOR MODES C & D
+            ════════════════════════════════════════
+            Every Mode C and Mode D response MUST follow this citation standard.
+            This section overrides any tendency to write in vague, unsourced generalities.
+
+            **THE STANDARD YOU MUST MEET:**
+            Write like an embedded analyst who has just read this morning's briefs.
+            Each factual claim must read like one of these:
+
+            ✅ "According to BBC News (14 May 2026), the military council announced..."
+            ✅ "ACLED data released 10 May 2026 records a 34% spike in civilian incidents..."
+            ✅ "The Guardian's 9 May 2026 investigation revealed that..."
+            ✅ "Freedom House's May 2026 update downgraded [country] to 'Not Free'..."
+            ✅ "Reuters reported on 12 May 2026 that the UN Security Council voted..."
+
+            **WHAT YOU MUST NEVER WRITE:**
+            ❌ "Tensions in the region remain elevated."
+            ❌ "The situation continues to be monitored by international observers."
+            ❌ "Recent reports suggest instability is increasing."
+            ❌ Any claim without a named source and date.
+
+            **CITATION FORMAT INSIDE PROSE:**
+            - Inline only. No footnotes. No reference lists at the bottom (except the closing line).
+            - Format: [Source] ([Date]) + specific claim.
+            - If a fact is from multiple sources, say: "Both ACLED and Reuters (May 2026) confirm..."
+            - If sources conflict: "BBC (12 May) reports X; ACLED's dashboard for the same period
+                shows Y — the discrepancy likely reflects [analyst interpretation]."
+
+            **SEARCH DISCIPLINE:**
+            - Run searches BEFORE composing. Do not draft first and search to confirm.
+            - If searches return no results for a specific claim, do not make the claim.
+                Instead write: "Reliable sourced data for [specific element] is not available
+                for this period."
+            - Recency hierarchy: same-week > same-month > same-quarter > older.
+                Always use the most recent available data and label it clearly.
+
+            **CLOSING LINE FORMAT (Modes C & D):**
+            End every response with:
+            *"Primary documentation: [Source 1 with date], [Source 2 with date], [Source 3 with date]."*
+            This is a source referral — not a disclaimer. Own your analysis above it.
+            
             
             OUTPUT in MARKDOWN : {PEMPromptTemplates.MARKDOWN_FORMAT_PROMPT}
         """
