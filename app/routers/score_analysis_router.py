@@ -67,10 +67,10 @@ async def analyze_missing_pillar_questions(request: MissingPillarQuestionRequest
 
         asyncio.create_task(
             run_analysis_task(
-                f"analyze_missing_pillar_questions_{request.country_id}",
+                f"analyze_missing_pillar_questions_{request.countryID}",
                 score_analyzer_service.import_missing_country_questions(
-                    request.country_id,
-                    request.pillar_id
+                    country_id=request.countryID,
+                    pillar_id=request.pillarID
                 )
             )
         )
