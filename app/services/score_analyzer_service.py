@@ -158,7 +158,14 @@ class ScoreAnalyzerService:
         return await self._run_for_country(
             country_id, self._analyze_questions, pillar_id=pillar_id
         )
-
+    
+    async def import_missing_country_questions(
+        self, country_id: int, pillar_id: Optional[int] = None
+    ) -> bool:
+        """Score all questions (or a single pillar's questions) for a country."""
+        return await self._run_for_country(
+            country_id, self._analyze_questions, pillar_id=pillar_id,missing_only=True
+        )
     # ------------------------------------------------------------------ #
     #  Internal dispatcher                                                #
     # ------------------------------------------------------------------ #
@@ -190,15 +197,33 @@ class ScoreAnalyzerService:
         self,
         country: Any,
         pillar_id: Optional[int] = None,
+        missing_only = False
     ) -> bool:
-        """Score every question for a country, grouped by pillar."""
-        where = f"countryId = {country.CountryID}"
+
+        countryID = int(country.CountryID)
+        year = datetime.now().year
+
+        where = f"CountryID = {countryID}"
+
         if pillar_id is not None:
             where += f" AND PillarID = {pillar_id}"
 
+        if missing_only:
+            where += f"""
+                AND QuestionID NOT IN
+                (
+                    SELECT QuestionID
+                    FROM AIEstimatedQuestionScores
+                    WHERE Year = {year}
+                )
+            """
+
         df = await self._db.get_view_data(
-            "vw_AiCountryPillarQuestionEvaluations", where
+            "vw_AiCountryPillarQuestionEvaluations",
+            where
         )
+
+        df = await self._db.get_view_data("vw_AiCountryPillarQuestionEvaluations", where)
         if df.empty:
             logger.info("No questions found: country %d", country.CountryID)
             return False
