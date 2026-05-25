@@ -13,7 +13,8 @@ LLM calls are handled by LLMBaseService.
 All prompt text comes from PEMPromptTemplates.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
+
 import os
 import re
 import chromadb
@@ -407,6 +408,49 @@ class RAGQueryService:
             }
 
 
+    async def emerging_trends_and_issues(
+        self,
+        country_count: int = 8,
+    ) -> Dict[str, Any]:
+        try:
+            country_count = max(4, min(8, country_count))
+
+            system_prompt = PEMPromptTemplates.emerging_trend_risk_prompt()
+
+            user_template = """
+            Generate the public homepage emerging issues and trends feed.
+
+            Current UTC datetime:
+            {current_date}
+
+            Required number of country cards:
+            {country_count}
+            """
+
+            raw = await self._llm_svc.invoke_chain(
+                system_prompt=system_prompt,
+                user_template=user_template,
+                variables={
+                    "current_date": datetime.now(timezone.utc),
+                    "country_count": country_count,
+                },
+                label="emerging-trends-and-issues",
+            )
+
+            analysis = json.loads(jrp.clean_json_response(raw))
+
+            return {
+                "success": True,
+                "data": analysis,
+            }
+
+        except Exception as exc:
+            logger.exception("emerging_trends_and_issues failed")
+
+            return {
+                "success": False,
+                "error": str(exc),
+            }
 
 
     # ------------------------------------------------------------------ #
