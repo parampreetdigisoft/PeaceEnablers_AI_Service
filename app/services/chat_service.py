@@ -484,7 +484,7 @@ class ChatService:
             "stable": "Stable",
             "critical": "Critical",
         }
-        pillar_names = PeaceEnablerPillarPrompts.get_all_pillar_names()
+
         by_id: Dict[int, Dict[str, Any]] = {}
 
         for item in data.get("pillars") or []:
