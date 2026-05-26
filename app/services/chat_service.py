@@ -16,6 +16,7 @@ from app.services.common.llm_base_service import LLMBaseService
 from app.services.common import json_response_parser as jrp
 from app.services.common.pillar_prompts import PeaceEnablerPillarPrompts
 from app.view_models.EmergingTrendsResult import EmergingTrendsResult
+from app.services.common.url_verifier import ensure_live_source_url
 logger = logging.getLogger(__name__)
 CHROMA_PATH = "./chroma_store"
 
@@ -242,6 +243,7 @@ class ChatService:
                 ai_result["data"],
                 country_count=country_count,
             )
+            normalized = await self._verify_emerging_trends_urls(normalized)
             validated = EmergingTrendsResult.model_validate(normalized)
 
             return {
@@ -330,8 +332,8 @@ class ChatService:
             color = str(item.get("color", "yellow")).strip().lower()
 
             summary = " ".join(str(item.get("summary", "")).split())
-            if len(summary) > 140:
-                summary = summary[:137].rstrip() + "..."
+            if len(summary) > 200:
+                summary = summary[:180].rstrip() + "..."
 
             confidence = item.get("confidence", 70)
             try:
@@ -380,11 +382,34 @@ class ChatService:
             "subHeadline": str(
                 data.get(
                     "subHeadline",
-                    "Global signals from the last 72 hours across governance, security, economy, and society.",
+                    "Live global signals from the last 48 hours across governance, security, economy, and society.",
                 )
             ).strip(),
             "countries": normalized_countries,
         }
+
+    @staticmethod
+    async def _verify_emerging_trends_urls(data: Dict[str, Any]) -> Dict[str, Any]:
+        countries = data.get("countries") or []
+        verified: List[Dict[str, Any]] = []
+
+        for item in countries:
+            if not isinstance(item, dict):
+                continue
+            country = str(item.get("country", "")).strip()
+            title = str(item.get("title", "")).strip()
+            url = str(item.get("sourceUrl", "")).strip()
+            if not url:
+                continue
+
+            item["sourceUrl"] = await ensure_live_source_url(url, country, title)
+            verified.append(item)
+
+        if len(verified) < 4:
+            raise ValueError("Insufficient country cards after URL verification")
+
+        data["countries"] = verified
+        return data
 
     @staticmethod
     def _normalize_source_url(item: Dict[str, Any]) -> str:
@@ -400,7 +425,7 @@ class ChatService:
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
             return ""
 
-        return url[:2048]
+        return url
 
     @staticmethod
     def _strip_source_mentions(text: str) -> str:

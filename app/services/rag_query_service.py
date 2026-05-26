@@ -13,7 +13,7 @@ LLM calls are handled by LLMBaseService.
 All prompt text comes from PEMPromptTemplates.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import os
 import re
@@ -418,20 +418,38 @@ class RAGQueryService:
             system_prompt = PEMPromptTemplates.emerging_trend_risk_prompt()
 
             user_template = """
-            Generate the public homepage emerging issues and trends feed.
+            Generate the public LIVE homepage emerging issues and trends feed.
 
-            Current UTC datetime:
+            Current UTC datetime (now):
             {current_date}
+
+            Live coverage window start (48 hours before now):
+            {recency_cutoff}
 
             Required number of country cards:
             {country_count}
+
+            Recency enforcement:
+            - Default: every card must cite a development published within the last 48 hours.
+            - Older context only for actively developing trends, only if needed to show the
+              pattern emerging over time, and only together with a last-48-hours development.
+
+            Before writing JSON:
+            - Run live web search for each country using the 48-hour window.
+            - For each sourceUrl, use ONLY a URL returned by search (copied exactly),
+              OR a Google News search URL for that story if no article URL is verified.
+            - Never invent Reuters/BBC/AP article paths or slug patterns.
             """
 
+            now_utc = datetime.now(timezone.utc)
             raw = await self._llm_svc.invoke_chain(
                 system_prompt=system_prompt,
                 user_template=user_template,
                 variables={
-                    "current_date": datetime.now(timezone.utc),
+                    "current_date": now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "recency_cutoff": (now_utc - timedelta(hours=48)).strftime(
+                        "%Y-%m-%dT%H:%M:%SZ"
+                    ),
                     "country_count": country_count,
                 },
                 label="emerging-trends-and-issues",
