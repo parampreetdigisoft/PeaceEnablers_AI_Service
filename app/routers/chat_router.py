@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.view_models.ChatRequest import ChatCountryExecutiveSlidesRequest, ChatCountryExecutiveSlidesResponse, ChatCountryRequest, ChatCrossComparisionRequest, ChatGlobalRequest, ChatRequest
 from app.view_models.AnalysisRequest import ChatResponse
 from app.view_models.EmergingTrendsResult import ChatEmergingTrendsResponse
+from app.view_models.PillarLiveSignalsResult import ChatPillarLiveSignalsResponse
 logger = logging.getLogger(__name__)
 from app.services.chat_service import chat_service
 
@@ -188,6 +189,41 @@ async def get_emerging_trends_and_issues(
     except Exception as e:
         logger.error(
             f"Error in emerging trends API: {str(e)}",
+            exc_info=True,
+        )
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/pillar-live-signals",
+    response_model=ChatPillarLiveSignalsResponse,
+    summary="Live global PEM pillar signals (all 23 pillars)",
+)
+async def get_pillar_live_signals():
+    """
+    Public feed: one concise live signal per Peace Enabler pillar (IDs 1–23).
+    """
+    try:
+        response = await chat_service.get_pillar_live_signals()
+
+        if not response.get("success"):
+            raise HTTPException(
+                status_code=502,
+                detail=response.get("message", "Failed to generate pillar live signals"),
+            )
+
+        return ChatPillarLiveSignalsResponse(
+            success=True,
+            message=response["message"],
+            result=response["result"],
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        logger.error(
+            f"Error in pillar live signals API: {str(e)}",
             exc_info=True,
         )
         raise HTTPException(status_code=500, detail=str(e))

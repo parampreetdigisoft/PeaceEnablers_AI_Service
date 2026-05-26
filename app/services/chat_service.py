@@ -9,13 +9,13 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from datetime import datetime, timezone
 from pydantic import ValidationError
-from app.services.common import pillar_prompts
 from app.services.core.repository import DatabaseRepository
 from app.services.rag_query_service import rag_query_service
 from app.services.common.llm_base_service import LLMBaseService
 from app.services.common import json_response_parser as jrp
 from app.services.common.pillar_prompts import PeaceEnablerPillarPrompts
 from app.view_models.EmergingTrendsResult import EmergingTrendsResult
+from app.view_models.PillarLiveSignalsResult import PillarLiveSignalsResult
 from app.services.common.url_verifier import ensure_live_source_url
 logger = logging.getLogger(__name__)
 CHROMA_PATH = "./chroma_store"
@@ -435,6 +435,144 @@ class ChatService:
             text.strip(),
             flags=re.IGNORECASE,
         ).strip()
+
+
+    async def get_pillar_live_signals(self) -> Dict[str, Any]:
+        try:
+            ai_result = await rag_query_service.pillar_live_signals()
+
+            if not ai_result.get("success"):
+                return {
+                    "success": False,
+                    "message": "Failed to generate pillar live signals",
+                }
+
+            normalized = self._normalize_pillar_live_signals_payload(ai_result["data"])
+            normalized = await self._verify_pillar_live_signals_urls(normalized)
+            validated = PillarLiveSignalsResult.model_validate(normalized)
+
+            return {
+                "success": True,
+                "message": "Pillar live signals generated successfully",
+                "result": validated.model_dump(),
+            }
+
+        except ValidationError as exc:
+            logger.warning(
+                "Pillar live signals response failed validation: %s",
+                exc,
+            )
+            return {
+                "success": False,
+                "message": "Pillar live signals response did not meet quality checks",
+            }
+
+        except Exception as exc:
+            logger.exception("get_pillar_live_signals failed")
+
+            return {
+                "success": False,
+                "message": str(exc),
+            }
+
+    @staticmethod
+    def _normalize_pillar_live_signals_payload(data: Dict[str, Any]) -> Dict[str, Any]:
+        status_map = {
+            "rising": "Rising",
+            "active": "Active",
+            "watch": "Watch",
+            "stable": "Stable",
+            "critical": "Critical",
+        }
+        pillar_names = PeaceEnablerPillarPrompts.get_all_pillar_names()
+        by_id: Dict[int, Dict[str, Any]] = {}
+
+        for item in data.get("pillars") or []:
+            if not isinstance(item, dict):
+                continue
+
+            try:
+                pillar_id = int(item.get("pillarId", item.get("pillar_id", 0)))
+            except (TypeError, ValueError):
+                continue
+
+            if pillar_id < 1 or pillar_id > 23:
+                continue
+
+            status = str(item.get("status", "Watch")).strip()
+            status = status_map.get(status.lower(), status)
+            if status not in status_map.values():
+                status = "Watch"
+
+            urgency = str(item.get("urgency", "medium")).strip().lower()
+            color = str(item.get("color", "yellow")).strip().lower()
+            card_type = str(item.get("type", "risk")).strip().lower()
+
+            title = ChatService._strip_source_mentions(str(item.get("title", "")).strip())
+            summary = ChatService._strip_source_mentions(
+                " ".join(str(item.get("summary", "")).split())[:100]
+            )
+            source_url = ChatService._normalize_source_url(item)
+
+            if not title or not summary or not source_url:
+                continue
+
+            by_id[pillar_id] = {
+                "pillarId": pillar_id,
+                "type": card_type if card_type in ("risk", "trend") else "risk",
+                "title": title,
+                "summary": summary,
+                "status": status,
+                "urgency": urgency if urgency in ("low", "medium", "high", "critical") else "medium",
+                "color": color if color in ("green", "yellow", "orange", "red", "blue") else "yellow",
+                "sourceUrl": source_url,
+            }
+
+        if len(by_id) < 23:
+            raise ValueError(
+                f"Expected 23 pillar cards, received {len(by_id)} valid entries"
+            )
+
+        pillars = [by_id[pid] for pid in sorted(by_id.keys())]
+
+        updated_at = data.get("updatedAt")
+        if not updated_at:
+            updated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        return {
+            "updatedAt": str(updated_at),
+            "headline": str(data.get("headline", "Live Pillar Signals")).strip(),
+            "subHeadline": str(
+                data.get(
+                    "subHeadline",
+                    "Global peace-enabler pillar watch from the last 48 hours.",
+                )
+            ).strip(),
+            "pillars": pillars,
+        }
+
+    @staticmethod
+    async def _verify_pillar_live_signals_urls(data: Dict[str, Any]) -> Dict[str, Any]:
+        pillar_names = PeaceEnablerPillarPrompts.get_all_pillar_names()
+        verified: List[Dict[str, Any]] = []
+
+        for item in data.get("pillars") or []:
+            if not isinstance(item, dict):
+                continue
+
+            pillar_id = int(item["pillarId"])
+            pillar_name = pillar_names.get(pillar_id, f"Pillar {pillar_id}")
+            title = str(item.get("title", "")).strip()
+            url = str(item.get("sourceUrl", "")).strip()
+
+            item["sourceUrl"] = await ensure_live_source_url(url, pillar_name, title)
+            verified.append(item)
+
+        if len(verified) < 23:
+            raise ValueError("Insufficient pillar cards after URL verification")
+
+        data["pillars"] = verified
+        return data
 
 
 chat_service = ChatService()

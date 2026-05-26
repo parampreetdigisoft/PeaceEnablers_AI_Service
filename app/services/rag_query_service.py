@@ -24,6 +24,7 @@ from chromadb.utils import embedding_functions
 from typing import List, Dict, Any, Optional
 from app.services.common.llm_base_service import LLMBaseService
 from app.services.common.country_prompt import PEMPromptTemplates
+from app.services.common.pillar_prompts import PeaceEnablerPillarPrompts
 from app.services.core.repository import DatabaseRepository
 from app.services.common import json_response_parser as jrp
 logger = logging.getLogger(__name__)
@@ -464,6 +465,54 @@ class RAGQueryService:
 
         except Exception as exc:
             logger.exception("emerging_trends_and_issues failed")
+
+            return {
+                "success": False,
+                "error": str(exc),
+            }
+
+
+    async def pillar_live_signals(self) -> Dict[str, Any]:
+        try:
+            system_prompt = PeaceEnablerPillarPrompts.pillar_live_signals_prompt()
+
+            user_template = """
+            Generate the LIVE global PEM pillar signals feed (all 23 pillars).
+
+            Current UTC datetime (now):
+            {current_date}
+
+            Live coverage window start (48 hours before now):
+            {recency_cutoff}
+
+            Requirements:
+            - Exactly 23 entries: pillarId 1 through 23, each once.
+            - Search each pillar domain before writing its card.
+            - Use verified sourceUrl rules from the system prompt.
+            """
+
+            now_utc = datetime.now(timezone.utc)
+            raw = await self._llm_svc.invoke_chain(
+                system_prompt=system_prompt,
+                user_template=user_template,
+                variables={
+                    "current_date": now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "recency_cutoff": (now_utc - timedelta(hours=48)).strftime(
+                        "%Y-%m-%dT%H:%M:%SZ"
+                    ),
+                },
+                label="pillar-live-signals",
+            )
+
+            analysis = json.loads(jrp.clean_json_response(raw))
+
+            return {
+                "success": True,
+                "data": analysis,
+            }
+
+        except Exception as exc:
+            logger.exception("pillar_live_signals failed")
 
             return {
                 "success": False,

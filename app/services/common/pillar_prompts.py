@@ -4,8 +4,19 @@ Enhanced with Veridian Urban Index pillar-specific prompts
 """
 
 
-		
-		
+_PILLAR_FEED_JSON_RULES = """
+        Return ONLY valid JSON.
+        - Output must start with { and end with }
+        - No markdown, code fences, or text outside JSON
+        - Use double quotes only; no trailing commas
+        """
+
+_PILLAR_FEED_OUTPUT_STYLE = """
+        - Write for a general audience (no technical jargon)
+        - Use clear, concise statements; no bullet lists inside JSON strings
+        """
+
+
 class PeaceEnablerPillarPrompts:
     """Provides context, focus areas, and research signals for all 23 Peace Enabler pillars."""
     GOVERNANCE_PROTOCOL = """
@@ -677,4 +688,85 @@ class PeaceEnablerPillarPrompts:
             pid: ctx["name"]
             for pid, ctx in cls.PILLAR_CONTEXTS.items()
         }
+
+    @classmethod
+    def get_pillar_catalog_for_live_feed(cls) -> str:
+        """Compact PEM pillar catalog for live global pillar signals."""
+        lines = []
+        for pid in sorted(cls.PILLAR_CONTEXTS.keys()):
+            pillar = cls.PILLAR_CONTEXTS[pid]
+            signals = ", ".join(pillar["search_signals"][:3])
+            lines.append(
+                f"Pillar {pid} — {pillar['name']}\n"
+                f"  Focus: {pillar['focus'][:280].strip()}\n"
+                f"  Search hints: {signals}"
+            )
+        return "\n\n".join(lines)
+
+    @classmethod
+    def pillar_live_signals_prompt(cls) -> str:
+        catalog = cls.get_pillar_catalog_for_live_feed()
+        return f"""
+        You are the Peace Enablers Matrix (PEM) live pillar intelligence engine.
+
+        Produce a LIVE global snapshot: exactly ONE card per PEM pillar (IDs 1–23).
+        Use the pillar definitions below to ground each card in the correct domain.
+
+        ==================================================
+        PEM PILLAR CATALOG (ALL 23 — MANDATORY COVERAGE)
+        ==================================================
+        {catalog}
+
+        ==================================================
+        MANDATORY: LIVE WEB SEARCH
+        ==================================================
+        Before writing JSON, search credible global news for each pillar domain.
+        For each pillar, find the most relevant global signal from the LAST 48 HOURS.
+        Older context only if an actively developing trend requires brief background
+        (same rules as PEM live country feed).
+
+        ==================================================
+        sourceUrl RULES
+        ==================================================
+        - One HTTPS URL per pillar, copied exactly from search OR Google News search:
+          https://news.google.com/search?q=PILLAR+TOPIC+KEYWORDS&hl=en-US&gl=US&ceid=US:en
+        - NEVER fabricate article slugs on Reuters, BBC, AP, etc.
+
+        ==================================================
+        OUTPUT RULES
+        ==================================================
+        - Return EXACTLY 23 pillar objects (pillarId 1 through 23, each once).
+        - title: max 55 characters — headline-style.
+        - summary: max 100 characters — one clear global signal for this pillar.
+        - type: "risk" or "trend" (lowercase).
+        - status: Rising | Active | Watch | Stable | Critical
+        - urgency: low | medium | high | critical
+        - color: green | yellow | orange | red | blue
+        - Do NOT mention source names in title or summary.
+        - headline/subHeadline: live 48-hour framing.
+        - updatedAt: current UTC ISO-8601.
+
+
+        JSON format:
+        {{
+            "updatedAt": "2026-05-25T12:00:00Z",
+            "headline": "Live Pillar Signals",
+            "subHeadline": "Global peace-enabler pillar watch from the last 48 hours.",
+            "pillars": [
+                {{
+                    "pillarId": 1,
+                    "type": "risk",
+                    "title": "Short headline",
+                    "summary": "One sentence global signal for this pillar domain.",
+                    "status": "Watch",
+                    "urgency": "medium",
+                    "color": "yellow",
+                    "sourceUrl": "https://news.google.com/search?q=historical+memory+reconciliation&hl=en-US&gl=US&ceid=US:en"
+                }}
+            ]
+        }}
+
+        {_PILLAR_FEED_OUTPUT_STYLE}
+        {_PILLAR_FEED_JSON_RULES}
+        """
 		
