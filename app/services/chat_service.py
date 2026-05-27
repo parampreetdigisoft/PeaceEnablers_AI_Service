@@ -225,12 +225,14 @@ class ChatService:
     async def get_emerging_trends_and_issues(
         self,
         country_count: int = 8,
+        query_variant: Optional[int] = None,
     ) -> Dict[str, Any]:
         try:
-            country_count = max(4, min(8, country_count))
+            max_records = max(1, min(250, country_count))
 
             ai_result = await rag_query_service.emerging_trends_and_issues(
-                country_count=country_count
+                country_count=max_records,
+                query_variant=query_variant,
             )
 
             if not ai_result.get("success"):
@@ -239,11 +241,7 @@ class ChatService:
                     "message": "Failed to generate emerging trends and issues",
                 }
 
-            normalized = self._normalize_emerging_trends_payload(
-                ai_result["data"],
-                country_count=country_count,
-            )
-            normalized = await self._verify_emerging_trends_urls(normalized)
+            normalized = self._normalize_emerging_trends_payload(ai_result["data"])            
             validated = EmergingTrendsResult.model_validate(normalized)
 
             return {
@@ -272,10 +270,7 @@ class ChatService:
 
 
     @staticmethod
-    def _normalize_emerging_trends_payload(
-        data: Dict[str, Any],
-        country_count: int,
-    ) -> Dict[str, Any]:
+    def _normalize_emerging_trends_payload(data: Dict[str, Any]) -> Dict[str, Any]:
         category_map = {
             "governance": "Governance",
             "conflict": "Conflict",
@@ -309,7 +304,7 @@ class ChatService:
         countries_raw = data.get("countries") or []
         normalized_countries: List[Dict[str, Any]] = []
 
-        for item in countries_raw[:country_count]:
+        for item in countries_raw:
             if not isinstance(item, dict):
                 continue
 
@@ -369,7 +364,7 @@ class ChatService:
                 }
             )
 
-        if len(normalized_countries) < 4:
+        if not normalized_countries:
             raise ValueError("Insufficient country cards in LLM response")
 
         updated_at = data.get("updatedAt")
@@ -387,29 +382,6 @@ class ChatService:
             ).strip(),
             "countries": normalized_countries,
         }
-
-    @staticmethod
-    async def _verify_emerging_trends_urls(data: Dict[str, Any]) -> Dict[str, Any]:
-        countries = data.get("countries") or []
-        verified: List[Dict[str, Any]] = []
-
-        for item in countries:
-            if not isinstance(item, dict):
-                continue
-            country = str(item.get("country", "")).strip()
-            title = str(item.get("title", "")).strip()
-            url = str(item.get("sourceUrl", "")).strip()
-            if not url:
-                continue
-
-            item["sourceUrl"] = await ensure_live_source_url(url, country, title)
-            verified.append(item)
-
-        if len(verified) < 4:
-            raise ValueError("Insufficient country cards after URL verification")
-
-        data["countries"] = verified
-        return data
 
     @staticmethod
     def _normalize_source_url(item: Dict[str, Any]) -> str:

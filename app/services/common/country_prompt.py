@@ -2,7 +2,10 @@
 PEM Prompt Templates — Static class holding ALL system prompts.
 Import this wherever a prompt is needed; never inline prompts in service files.
 """
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Optional, Sequence, Tuple
+from urllib.parse import quote
+
 from app.services.common.pillar_prompts import PeaceEnablerPillarPrompts
 
 
@@ -1214,110 +1217,124 @@ class PEMPromptTemplates:
     """
 
     
+    # GDELT emerging-trends query variants (rotate to avoid identical URLs / rate limits)
+    GDELT_EMERGING_KEYWORD_VARIANTS: Tuple[Tuple[str, ...], ...] = (
+        ("war", "conflict"),
+        ("terrorism", "protest"),
+        ("sanctions", "military"),
+        ("war", "conflict", "terrorism"),
+        ("protest", "sanctions", "military"),
+        ("war", "conflict", "terrorism", "protest", "sanctions", "military"),
+    )
+
+    @staticmethod
+    def gdelt_emerging_variant_count() -> int:
+        return len(PEMPromptTemplates.GDELT_EMERGING_KEYWORD_VARIANTS)
+
+    @staticmethod
+    def pick_gdelt_emerging_variant_index() -> int:
+        """Rotate variant every 5 minutes (UTC) so repeated calls are not identical."""
+        bucket = int(datetime.now(timezone.utc).timestamp()) // 300
+        return bucket % PEMPromptTemplates.gdelt_emerging_variant_count()
+
+    @staticmethod
+    def _gdelt_emerging_query_string(keywords: Sequence[str]) -> str:
+        inner = " OR ".join(k.strip() for k in keywords if k and k.strip())
+        return f"({inner}) sourcelang:english"
+
+    @staticmethod
+    def emerging_trends_gdelt_url(
+        max_records: int,
+        variant_index: Optional[int] = None,
+    ) -> Tuple[str, int]:
+        """
+        Build GDELT Doc API URL (last 24h, English).
+
+        Returns (url, variant_index_used). Each variant uses a different keyword subset.
+        """
+        variants = PEMPromptTemplates.GDELT_EMERGING_KEYWORD_VARIANTS
+        n_variants = len(variants)
+        if variant_index is None:
+            idx = PEMPromptTemplates.pick_gdelt_emerging_variant_index()
+        else:
+            idx = int(variant_index) % n_variants
+
+        n = max(1, min(250, int(max_records)))
+        query = PEMPromptTemplates._gdelt_emerging_query_string(variants[idx])
+        encoded_query = quote(query, safe="")
+
+        url = (
+            "https://api.gdeltproject.org/api/v2/doc/doc"
+            f"?query={encoded_query}"
+            f"&mode=ArtList&maxrecords={n}&format=json&timespan=24h&sort=DateDesc"
+        )
+        return url, idx
+
     @staticmethod
     def emerging_trend_risk_prompt() -> str:
+        """
+        System prompt: map GDELT article list to public emerging-trends country cards.
+        Articles are supplied in the user message; do not browse or invent URLs.
+        """
         return f"""
         You are an AI intelligence engine for the public-facing Peace Enablers Matrix (PEM) platform.
 
         ==================================================
-        MANDATORY: LIVE WEB SEARCH BEFORE WRITING JSON
+        DATA SOURCE (MANDATORY)
         ==================================================
-        You MUST run live web searches BEFORE producing JSON.
-        For EACH country card:
-        1. Search: [country name] + [topic keywords] + "last 48 hours" or today's date.
-        2. Open/read actual results — do NOT invent headlines or URLs.
-        3. Only write the card if you found a real signal within the LAST 48 HOURS
-           (or a developing-trend case that meets the exception rules below).
+        You will receive a JSON list of news articles from the GDELT Doc API (last 24 hours).
+        You MUST produce exactly one country card for EVERY article in that list (no skipping, no extras).
 
-        ==================================================
-        sourceUrl RULES (CRITICAL — USERS CLICK THESE LINKS)
-        ==================================================
-        - sourceUrl MUST be exactly ONE HTTPS URL that opens a real page.
-        - COPY the URL character-for-character from your live search results.
-        - NEVER guess, fabricate, or reconstruct URL slugs from headlines or dates.
-        - NEVER build URLs like reuters.com/world/.../story-title-YYYY-MM-DD/ unless that
-          exact URL appeared in search results.
-        - NEVER use example, placeholder, or training-memory URLs.
-        - The link MUST match the same story described in title and summary.
-
-        If you cannot find a verified article URL from search:
-        - Use a Google News search URL for that exact story only, in this format:
-          https://news.google.com/search?q=COUNTRY+KEYWORDS&hl=en-US&gl=US&ceid=US:en
-        - Replace COUNTRY+KEYWORDS with URL-encoded country + 2–4 topic words (spaces as +).
-        - Do NOT use a fake article path on Reuters, BBC, AP, etc.
-
-        Allowed article hosts (only if URL came from search): reuters.com, apnews.com,
-        bbc.com, bbc.co.uk, aljazeera.com, theguardian.com, npr.org, france24.com,
-        dw.com, un.org, reliefweb.int, who.int, worldbank.org.
-
-        ==================================================
-        LIVE FEED RECENCY (MANDATORY)
-        ==================================================
-        This feed is presented to users as LIVE intelligence. Treat recency as a hard rule.
-
-        PRIMARY WINDOW — LAST 48 HOURS:
-        - Every country card MUST be anchored to at least one credible development from the
-          LAST 48 HOURS (relative to current UTC datetime provided in the user message).
-        - Prefer the most recent reporting within that window.
-        - headline and subHeadline MUST describe the feed as live coverage from the last 48 hours
-          (do not say 24 hours, 72 hours, or "recent" without the 48-hour frame).
-
-        OLDER THAN 48 HOURS — STRICT EXCEPTION ONLY:
-        - Do NOT include standalone stories older than 48 hours.
-        - You may reference older context ONLY when ALL of the following are true:
-          1. The situation is an actively DEVELOPING trend (not a closed or static event).
-          2. The older context is NECESSARY to explain how the pattern is emerging over time.
-          3. The card still includes a clear, specific development from the LAST 48 HOURS.
-        - In that case, the title and summary must lead with the last-48-hours development;
-          older context may appear only as brief background (one short clause max in summary).
-        - If you cannot find a last-48-hours hook, omit that country and choose another.
+        CRITICAL:
+        - Use ONLY the articles provided in the user message. Do not browse the web.
+        - Do not invent, modify, or guess URLs or headlines.
+        - For each card:
+          - sourceUrl MUST equal the selected article's "url" field EXACTLY (character-for-character).
+          - title MUST equal the selected article's "title" field EXACTLY.
+        - sourceUrl must be a direct article permalink (not Google News, not /search or listing pages).
+        - Use article "sourcecountry" as a hint for country/region when inferring metadata.
 
         ==================================================
         ANALYTICAL TASK
         ==================================================
-        1. Identify countries currently trending in credible global news within the recency rules above.
-        2. Generate concise, public-friendly intelligence cards for a homepage UI.
-        3. Keep tone neutral, factual, concise, and globally understandable.
-        4. Avoid propaganda, bias, political opinions, or speculative claims.
-        5. Include a balanced mix: emerging risks, stability trends, governance, economy,
-           security, climate/humanitarian signals.
-        6. Return diverse countries from different regions.
-        7. Output is for general public users on a marketing homepage.
+        1. Generate concise, public-friendly intelligence cards for a homepage UI.
+        2. Keep tone neutral, factual, concise, and globally understandable.
+        3. Each card = ONE primary risk or trend aligned with the article headline.
+        4. Preserve the article order from the input list when possible.
+        5. Do NOT mention news outlets or "according to" in title or summary.
 
         Field rules:
-        - Return EXACTLY the requested number of countries (between 2 and 8).
-        - Each country card = ONE primary risk or trend only.
-        - Each summary MUST be 140 characters or fewer (count strictly).
-        - confidence: integer 0–100 (source clarity; lower if using Google News search URL).
+        - countries[] length MUST equal the number of articles in the user message.
+        - summary: 1–2 sentences, maximum 200 characters.
+        - confidence: integer 0–100 (how clearly the article supports the classification).
         - countryCode: valid ISO 3166-1 alpha-2 (uppercase).
         - icon must match category.
         - color reflects urgency (low=green, medium=yellow, high=orange, critical=red, stable/watch=blue).
-        - Do NOT mention sources, outlets, or "according to" in title or summary.
-        - updatedAt: current UTC ISO-8601 datetime.
-        - No duplicate countries.
+        - updatedAt: current UTC ISO-8601 datetime from the user message context.
+        - No duplicate sourceUrl values.
         - JSON only — no markdown outside JSON.
 
         JSON Response Format:
 
         {{
-            "updatedAt": "2026-05-25T12:00:00Z",
+            "updatedAt": "2026-05-27T12:00:00Z",
             "headline": "Live Emerging Issues & Trends",
-            "subHeadline": "Live global signals from the last 48 hours across governance, security, economy, and society.",
+            "subHeadline": "Live global signals from the last 24 hours across governance, security, economy, and society.",
             "countries": [
                 {{
-                    "country": "Brazil",
-                    "countryCode": "BR",
-                    "region": "South America",
+                    "country": "United Kingdom",
+                    "countryCode": "GB",
+                    "region": "Europe",
                     "type": "risk",
-                    "title": "Flood Recovery Planning",
-                    "summary": "Southern state authorities advance rebuilding plans after severe flooding.",
-                    "category": "Climate",
+                    "title": "Exact headline copied from GDELT article title field",
+                    "summary": "Concise public summary of the story in under 200 characters.",
+                    "category": "Conflict",
                     "status": "Active",
                     "urgency": "high",
-                    "confidence": 72,
-                    "icon": "climate",
+                    "confidence": 75,
+                    "icon": "conflict",
                     "color": "orange",
-                    "sourceUrl": "https://news.google.com/search?q=Brazil+Rio+Grande+do+Sul+floods&hl=en-US&gl=US&ceid=US:en"
+                    "sourceUrl": "https://example.com/exact-url-from-gdelt-article-url-field"
                 }}
             ]
         }}
@@ -1360,3 +1377,21 @@ class PEMPromptTemplates:
         {PEMPromptTemplates._OUTPUT_STYLE}
         {PEMPromptTemplates._JSON_RULES}
         """
+
+    @staticmethod
+    def emerging_trends_and_issues_user_prompt() -> str:
+        """User message template for GDELT-backed emerging trends feed."""
+        return """
+        Current UTC datetime (now):
+        {current_date}
+
+        GDELT articles (use ONLY these — do not browse the web; one card per article):
+        {articles_json}
+
+        For each article:
+        - Infer country, countryCode, region, category, status, urgency, color, icon, and summary
+          from its title and sourcecountry field.
+        - Choose category/status/urgency/color consistently with the headline and story type.
+
+        Now return the JSON output.
+        """.strip()
