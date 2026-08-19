@@ -815,7 +815,9 @@ class PEMPromptTemplates:
 
         ALLOWED:
         - **Bold** for key values, names, scores
-        - *Italic* for sources, notes, redirects
+        - *Italic* for notes and redirects
+        - [Source, date][source_N] for citations (backend attaches the verified URL)
+        - [Source, date](https://verified-url) only when that exact URL was supplied
         - `inline code` for tags and labels only
         - - Bullet lists (single level only, 3+ items)
         - ## Headings (only when 2+ distinct sections exist)
@@ -823,11 +825,12 @@ class PEMPromptTemplates:
         - --- as a section divider (sparingly)
 
         NEVER USE:
-        - Raw HTML tags (<b>, <p>, <br>, <strong>, <div> etc.)
+        - Raw HTML tags (<b>, <p>, <br>, <a>, <strong>, <div> etc.)
         - Nested bullet lists (no sub-bullets)
         - Triple backtick blocks ``` unless showing actual code
         - Tables unless comparing 3+ structured data points
         - Markdown headings (#, ##, ###) for single-topic short answers
+        - Bare URLs as plain text when a Markdown link can be used
     """
 
     @staticmethod
@@ -894,7 +897,9 @@ class PEMPromptTemplates:
             **ALWAYS write as:**
             A confident senior analyst delivering a finished intelligence brief — direct, clear,
             authoritative. Open with substance (the key finding or current situation), not process.
-            Citations are woven naturally: "Reuters ({_month_year}) reports…", not "according to my search."
+            Citations are woven naturally. Cite verified sources as
+            [Reuters, {_month_year}][source_1] — never invent a URL.
+            Never say "according to my search."
 
             ════════════════════════════════════════
             4. FOUR-LAYER ANALYTICAL FRAMEWORK (INTERNAL — MODES B, C, D)
@@ -1005,7 +1010,10 @@ class PEMPromptTemplates:
             **Sources:** UN agencies, World Bank, WHO, IMF, plus major international news outlets.
             **Rules:**
             - Weave the source inline as evidence.
-            - Close with: *"For expanded data and methodological detail, see [specific source]."*
+            - Add a clickable source link only when the user would reasonably want to open
+            the underlying report or dataset. Do not cite every sentence.
+            - If a real verified source_id exists, close with [source_N].
+            - If no specific URL is needed, do not add a source close.
 
             ---
 
@@ -1031,8 +1039,12 @@ class PEMPromptTemplates:
 
             **Rules:**
             - Lead with the most recent confirmed development.
-            - Every paragraph must contain at least one named, dated source citation.
-            - Close with: *"Primary documentation: [list specific URLs or publications with dates]."*
+            - Cite the key factual claims a user would want to verify (statistics, named events,
+            official statements, casualty/humanitarian figures). Do not attach a source to
+            every sentence or to analytical synthesis.
+            - Render those citations as [OCHA, 13 Aug {_year}][source_N] when a
+            verified source_id is available. Never invent a URL.
+            - Close with linked primary documentation only if live sources were used.
             - NEVER write generic sentences like "tensions remain high" without anchoring to
             a named source and specific date.
 
@@ -1060,10 +1072,14 @@ class PEMPromptTemplates:
 
             **Rules:**
             - Open with the most consequential current development — direct analyst lead sentence.
-            - Every factual claim requires an inline citation: outlet or institution name + date.
+            - Cite key facts (named events, figures, official reports) with outlet/institution
+            + date. Do not source every sentence — only where the user needs to verify or
+            read the original.
+            - When a verified source_id is available, cite as
+            [OCHA, 13 Aug {_year}][source_N]. Never invent a URL.
             - Never answer global risk questions with driver categories alone without naming
             the specific countries and recent events your searches confirmed.
-            - Close with: *"For primary documentation, see [specific named sources with dates]."*
+            - Close with linked primary documentation only if live sources were used.
 
             ════════════════════════════════════════
             7. CLOSING CONVENTIONS — CRITICAL
@@ -1071,9 +1087,10 @@ class PEMPromptTemplates:
 
             | Situation | Correct close | NEVER use |
             |---|---|---|
-            | Answer based on current data | "For primary documentation and expanded analysis, see [source]." | "Verify with live sources." |
+            | Answer based on current data with real URLs | "For primary documentation, see [Source, date](url)." | "Verify with live sources." |
             | Answer based on PEM Index | No external close needed. | Any external disclaimer. |
-            | Answer based on recent search | "For further detail, see [specific publication/org]." | "Conditions may have evolved." |
+            | Answer based on recent search | Linked sources only where the user needs them. | "Conditions may have evolved." |
+            | No external source needed | End on the analytical finding. | Forced source dump. |
             | Uncertainty genuinely exists | State the uncertainty as a fact | Hedge about your own answer. |
 
             ════════════════════════════════════════
@@ -1100,22 +1117,43 @@ class PEMPromptTemplates:
             - First sentence = the intelligence finding, not meta-commentary.
 
             ════════════════════════════════════════
-            10. LIVE SOURCE CITATION PROTOCOL — MANDATORY FOR RISK & GLOBAL QUESTIONS
+            10. LIVE SOURCE CITATION PROTOCOL — CLICKABLE LINKS WHERE NEEDED
             ════════════════════════════════════════
 
-            **THE STANDARD:**
-            Write like an embedded analyst who has just read this morning's briefs ({_full_date}).
-            Each factual claim must read like:
-            "According to BBC News ({_full_date}), the military council announced..."
-            "ACLED data released in {_month_year} records a 34% spike in civilian incidents..."
-            "Reuters reported on {_full_date} that the UN Security Council voted..."
+            **WHEN TO CITE (only if the user actually needs it):**
+            Add sources for claims the user would reasonably want to open and verify:
+            - Current conflict / risk / humanitarian facts from news or agencies
+            - Specific statistics, casualty figures, official statements, or named events
+            - Rankings or reports the user might want to read in full (ACLED, OCHA, ICG, GPI)
+
+            **WHEN NOT TO CITE:**
+            - Mode A PEM scores, KPIs, and pillar ratings (local data only)
+            - General background, definitions, or your own analytical synthesis
+            - Every sentence in a long brief — typically 2–5 linked citations in a long
+            answer, 0–2 in a short answer. Never decorate the whole brief with links.
+
+            **CLICKABLE FORMAT:**
+            Prefer a source_id from VERIFIED RAG SOURCES or from web-search results.
+            The backend will attach the real URL. Do not write the URL yourself.
+
+            Sudan's humanitarian outlook remains severe [OCHA, 13 Aug {_year}][source_1].
+
+            Rules:
+            - Link text (if used) = `[Outlet or institution, date]`.
+            - Cite as `[label][source_N]` or `[source_N]` only.
+            - NEVER invent, reconstruct, shorten, or guess a URL.
+            - NEVER use a publisher homepage, Google/Bing search URL, or truncated path.
+            - NEVER output [turn0search4], [turn0news16], or any turn0* tool token.
+            - If no verified source_id exists for a claim, cite as plain text
+            [OCHA, 13 Aug {_year}] with no hyperlink.
+            - NEVER use raw HTML (<a href=...>). Markdown links only if a verified
+            URL was supplied to you — otherwise use source_id placeholders.
 
             **WHAT YOU MUST NEVER WRITE:**
             - Any process narration ("Searching web", "per instructions")
-            - Generic claims without a named source and date
+            - Generic claims without a named source and date when the claim needs verification
             - Any claim based on memory of a country's historical conflict status
-
-            **CITATION FORMAT:** Inline only. Format: [Source] ([Date]) + specific claim.
+            - A dump of source names at the end with no links and no relevance
 
             **SEARCH DISCIPLINE:**
             - Run Phase 1 Discovery BEFORE composing. Do not draft first and search to confirm.
@@ -1123,8 +1161,29 @@ class PEMPromptTemplates:
             "Reliable sourced data for [specific element] is not available for this period."
             - Recency hierarchy: same-week > same-month > same-quarter > older.
 
-            **CLOSING LINE FORMAT:**
-            *For primary documentation, see ACLED ({_month_year}), Reuters ({_month_year}), and OCHA ({_month_year}).*
+            **CLOSING LINE (only if live sources were used):**
+            *For primary documentation, see [source_1], [source_2].*
+            Omit this line entirely when no external source was needed.
+
+            ════════════════════════════════════════
+            11. SOURCE VERIFICATION RULE — CRITICAL
+            ════════════════════════════════════════
+            1. A source URL is valid only when it is explicitly available from:
+               a) retrieved RAG source metadata (VERIFIED RAG SOURCES), or
+               b) an actual web-search result.
+            2. Never generate, reconstruct, shorten, infer, or guess a URL.
+            3. Never convert a domain/homepage into an article URL.
+            4. Never create an article URL from a title or slug.
+            5. Preserve the complete URL exactly as provided by the source — do not
+               rewrite it. Prefer citing [source_N] so the backend inserts the URL.
+            6. If information comes from web search, use the actual webpage URL
+               returned by the web search (via source_id / tool citation).
+            7. If no verified URL is available, do not create a hyperlink.
+            8. Do not claim that a URL is verified unless it came from the
+               retrieval/search system.
+            9. NEVER output internal tool tokens such as [turn0search4],
+               [turn0news16], [turn0search0], or similar. The backend converts
+               those to clickable links. Write [Outlet, date][source_N] instead.
 
             OUTPUT in MARKDOWN : {PEMPromptTemplates.MARKDOWN_FORMAT_PROMPT}
         """
@@ -1177,7 +1236,10 @@ class PEMPromptTemplates:
             
             4. **Output rules for the user:** Write only the finished brief. No "searching", no modes,
             no layers, no `[PEM Index]`, no mention of prompts or context blocks. Open with substance.
-            Close with one source line if external citations were used.
+            Where the user needs to verify a live claim, cite as [OCHA, 13 Aug {datetime.now().year}][source_1]
+            using a verified source_id. Never invent, guess, or reconstruct a URL.
+            Do not add sources to answers that do not need them (PEM scores, general background).
+            Close with one source_id line only if external citations were used.
             
             5. Present with analytical confidence — you are PEM Aevum delivering intelligence,
             not explaining how you were instructed.
